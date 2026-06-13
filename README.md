@@ -18,7 +18,23 @@ npm run dev      # 開発サーバ http://localhost:3000
 npm run build && npm start
 ```
 
-Node.js 18.17 以上（推奨 20/22）。
+Node.js は **20.x** を推奨（`.nvmrc` / `package.json` の `engines` で固定）。
+
+---
+
+## Vercel へのデプロイ
+
+本構成は Vercel に**ゼロコンフィグ**でデプロイできます（SSR・APIルートにそのまま対応）。
+
+1. Vercel で「**Add New… → Project**」から GitHub リポジトリ `vie324/salon_one_dashboard` をインポート。
+2. Framework は **Next.js** が自動検出されます（Build: `next build` / Install: `npm install`）。Root Directory はリポジトリ直下のまま。
+3. 環境変数は**現状不要**（モックデータ動作）。Salon One 連携時に、例として以下を Vercel の Environment Variables に追加し、`src/lib/data` から参照します:
+   - `SALONONE_API_BASE_URL`（例: `https://api.salonone.net/v1`）
+   - `SALONONE_API_TOKEN`
+4. **Deploy** を実行 → 本番URLが発行されます。以後 `main` への push で自動デプロイ、PRごとに**プレビューデプロイ**が作成されます。
+5. Node ランタイムは **20.x** に固定済み。
+
+> 補足: リポジトリに残る GitHub Pages の `pages-build-deployment` ワークフローは Vercel では不要です（無効化可）。Pages は静的ホスティングのため本フルスタック構成は動作しません。
 
 ---
 
