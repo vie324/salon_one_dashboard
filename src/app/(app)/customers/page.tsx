@@ -46,7 +46,7 @@ export default function CustomersPage({
             xFormat="month"
             yFormat="person"
             series={[
-              { key: "repeat", name: "リピート", color: "#6366f1", stackId: "a" },
+              { key: "repeat", name: "リピート", color: "#0f766e", stackId: "a" },
               { key: "new", name: "新規", color: "#f59e0b", stackId: "a" },
             ]}
           />
@@ -85,7 +85,7 @@ export default function CustomersPage({
             height={220}
             xFormat="month"
             yFormat="person"
-            series={[{ key: "members", name: "会員数", color: "#6366f1" }]}
+            series={[{ key: "members", name: "会員数", color: "#0f766e" }]}
           />
         </ChartCard>
 

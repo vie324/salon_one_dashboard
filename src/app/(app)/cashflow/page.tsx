@@ -52,7 +52,7 @@ export default function CashflowPage({
             height={280}
             xFormat="month"
             series={[
-              { key: "inflow", name: "収入", color: "#6366f1", type: "area" },
+              { key: "inflow", name: "収入", color: "#0f766e", type: "area" },
               { key: "outflow", name: "支出", color: "#f43f5e", type: "line", dashed: true },
               { key: "net", name: "ネットCF", color: "#22c55e", type: "line" },
             ]}
@@ -158,7 +158,7 @@ export default function CashflowPage({
               <ProgressBar value={data.subscription.churn / Math.max(1, data.subscription.members)} tone="rose" />
               <p className="mt-1 text-sm font-semibold tnum text-slate-700 dark:text-slate-200">{formatPercent(data.subscription.churn / Math.max(1, data.subscription.members))}</p>
               <div className="mt-2">
-                <Sparkline data={[data.subscription.members - data.subscription.newMembers, data.subscription.members]} color="#6366f1" height={36} />
+                <Sparkline data={[data.subscription.members - data.subscription.newMembers, data.subscription.members]} color="#0f766e" height={36} />
               </div>
             </div>
           </div>

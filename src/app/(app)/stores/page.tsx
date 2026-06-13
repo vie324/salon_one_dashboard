@@ -51,7 +51,7 @@ export default function StoresPage({
           data={data.rows.map((r) => ({ name: r.name, revenue: r.revenue }))}
           layout="vertical"
           height={Math.max(280, data.rows.length * 30)}
-          series={[{ key: "revenue", name: "売上", color: "#6366f1" }]}
+          series={[{ key: "revenue", name: "売上", color: "#0f766e" }]}
         />
       </ChartCard>
 

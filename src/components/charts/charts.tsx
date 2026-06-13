@@ -277,7 +277,7 @@ export function DonutChart({
 
 export function Sparkline({
   data,
-  color = "#6366f1",
+  color = "#0f766e",
   height = 40,
 }: {
   data: number[];

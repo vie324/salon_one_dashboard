@@ -1,9 +1,12 @@
 "use client";
 
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { CommandPalette } from "./CommandPalette";
 import { Sidebar } from "./Sidebar";
+import { Splash } from "./Splash";
 import { Topbar } from "./Topbar";
 import type { FilterBrand, FilterStore } from "./FilterBar";
 
@@ -18,6 +21,7 @@ export function AppShell({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     try {
@@ -69,9 +73,12 @@ export function AppShell({
       <div className={cn("transition-[padding] duration-200 print:!pl-0", collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]")}>
         <Topbar brands={brands} stores={stores} onMenu={() => setMobileOpen(true)} />
         <main className="px-4 py-6 lg:px-6 lg:py-7 print:!p-0">
-          <div className="mx-auto max-w-[1440px]">{children}</div>
+          <div key={pathname} className="mx-auto max-w-[1440px] animate-fade-up">{children}</div>
         </main>
       </div>
+
+      <Splash />
+      <CommandPalette />
     </div>
   );
 }

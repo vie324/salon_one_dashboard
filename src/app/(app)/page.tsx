@@ -29,12 +29,12 @@ import {
 } from "@/lib/format";
 
 const KPI_META: Record<string, { color: string; invert?: boolean }> = {
-  revenue: { color: "#6366f1" },
+  revenue: { color: "#0f766e" },
   operatingProfit: { color: "#14b8a6" },
   customers: { color: "#0ea5e9" },
   ticket: { color: "#a855f7" },
   repeat: { color: "#22c55e" },
-  occupancy: { color: "#6366f1" },
+  occupancy: { color: "#0f766e" },
   cancel: { color: "#f43f5e", invert: true },
   newCustomers: { color: "#f59e0b" },
 };
@@ -72,7 +72,7 @@ export default function OverviewPage({
       {/* KPI grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {data.kpis.map((k) => {
-          const meta = KPI_META[k.key] ?? { color: "#6366f1" };
+          const meta = KPI_META[k.key] ?? { color: "#0f766e" };
           return (
             <StatCard
               key={k.key}
@@ -105,7 +105,7 @@ export default function OverviewPage({
               xFormat="day"
               referenceX={data.today.date}
               series={[
-                { key: "actual", name: "売上（実績）", color: "#6366f1", type: "area" },
+                { key: "actual", name: "売上（実績）", color: "#0f766e", type: "area" },
                 { key: "forecast", name: "着地見込", color: "#a5acfb", type: "line", dashed: true },
               ]}
             />
@@ -115,7 +115,7 @@ export default function OverviewPage({
               height={280}
               xFormat="month"
               series={[
-                { key: "value", name: "売上", color: "#6366f1", type: "area" },
+                { key: "value", name: "売上", color: "#0f766e", type: "area" },
                 { key: "profit", name: "営業利益", color: "#14b8a6", type: "line" },
               ]}
             />

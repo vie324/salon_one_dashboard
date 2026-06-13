@@ -42,7 +42,7 @@ export default function FinancialsPage({
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="売上高" value={revTotal.amount} format="yenCompact" delta={revTotal.delta} compareLabel={compareText} sparkColor="#6366f1" />
+        <StatCard label="売上高" value={revTotal.amount} format="yenCompact" delta={revTotal.delta} compareLabel={compareText} sparkColor="#0f766e" />
         <StatCard label="売上総利益" value={gross.amount} format="yenCompact" delta={gross.delta} compareLabel={compareText} hint={`粗利率 ${formatPercent(gross.ratio)}`} sparkColor="#14b8a6" />
         <StatCard label="営業利益" value={operating.amount} format="yenCompact" delta={operating.delta} compareLabel={compareText} sparkColor="#22c55e" />
         <StatCard label="営業利益率" value={operating.ratio} format="percent" delta={operating.ratio - operating.prev / (revTotal.prev || 1)} compareLabel={compareText} sparkColor="#0ea5e9" />
@@ -109,7 +109,7 @@ export default function FinancialsPage({
           height={260}
           xFormat="month"
           series={[
-            { key: "revenue", name: "売上高", color: "#6366f1", type: "area" },
+            { key: "revenue", name: "売上高", color: "#0f766e", type: "area" },
             { key: "grossProfit", name: "売上総利益", color: "#14b8a6", type: "line" },
             { key: "operatingProfit", name: "営業利益", color: "#22c55e", type: "line" },
           ]}

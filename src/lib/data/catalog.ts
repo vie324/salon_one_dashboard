@@ -17,12 +17,12 @@ export const COMPANY = {
 };
 
 export const BRANDS: Brand[] = [
-  { id: "lumiere", name: "Lumière", nameEn: "Lumiere", category: "hair", color: "#6366f1" },
-  { id: "mods", name: "MOD's Nail", nameEn: "MODs Nail", category: "nail", color: "#ec4899" },
-  { id: "lashe", name: "Lashé", nameEn: "Lashe", category: "eyelash", color: "#a855f7" },
-  { id: "karada", name: "Karada Lab", nameEn: "Karada Lab", category: "osteopathy", color: "#0ea5e9" },
-  { id: "reposer", name: "Reposer", nameEn: "Reposer", category: "relax", color: "#14b8a6" },
-  { id: "blanc", name: "Esthé Blanc", nameEn: "Esthe Blanc", category: "esthetic", color: "#f59e0b" },
+  { id: "lumiere", name: "Lumière", nameEn: "Lumiere", category: "hair", color: "#0f766e" },
+  { id: "mods", name: "MOD's Nail", nameEn: "MODs Nail", category: "nail", color: "#be185d" },
+  { id: "lashe", name: "Lashé", nameEn: "Lashe", category: "eyelash", color: "#7c3aed" },
+  { id: "karada", name: "Karada Lab", nameEn: "Karada Lab", category: "osteopathy", color: "#2563eb" },
+  { id: "reposer", name: "Reposer", nameEn: "Reposer", category: "relax", color: "#0891b2" },
+  { id: "blanc", name: "Esthé Blanc", nameEn: "Esthe Blanc", category: "esthetic", color: "#b45309" },
 ];
 
 export function brandById(id: string): Brand | undefined {

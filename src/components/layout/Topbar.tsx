@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { routeTitle } from "@/lib/nav";
@@ -35,6 +35,15 @@ export function Topbar({
           <div className="hidden xl:block">
             <FilterBar brands={brands} stores={stores} />
           </div>
+          <button
+            onClick={() => window.dispatchEvent(new Event("open-command"))}
+            className="hidden h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 md:flex"
+            aria-label="検索・移動"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden lg:inline">検索・移動</span>
+            <kbd className="rounded border border-slate-200 px-1 text-[10px] dark:border-slate-700">⌘K</kbd>
+          </button>
           <ThemeToggle />
           <Link href="/" className="btn btn-ghost btn-icon relative" aria-label="アラート" title="要対応アラート">
             <Bell className="h-[18px] w-[18px]" />
