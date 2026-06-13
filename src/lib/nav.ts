@@ -7,6 +7,7 @@ import {
   Scale,
   Settings,
   Store,
+  Target,
   Users,
   Wallet,
   type LucideIcon,
@@ -30,6 +31,7 @@ export const NAV: NavGroup[] = [
     label: "経営概況",
     items: [
       { href: "/", label: "ダッシュボード", icon: LayoutDashboard, desc: "全社KPIと要対応事項" },
+      { href: "/budget", label: "予実・目標", icon: Target, desc: "業態別の予算・目標と実績管理" },
     ],
   },
   {

@@ -686,6 +686,59 @@ export function getMarketing(f: Filters) {
   return { rows, totals, blendedCpa, blendedRoas, trend };
 }
 
+// ============================================================
+// Budget / targets (予実・目標)
+// ============================================================
+
+function metricVals(a: Agg) {
+  return { revenue: a.revenue, profit: a.operatingProfit, customers: a.customers, newCustomers: a.newCustomers };
+}
+
+export function getBudget(f: Filters) {
+  const cur = periodMonths(f.period);
+  const prev = comparisonMonths(f);
+  const day = Number(TODAY.split("-")[2]);
+  const [cy, cm] = CURRENT_YM.split("-").map(Number);
+  const dim = new Date(cy, cm, 0).getDate();
+  const weights = cur.map((ym) => (ym < CURRENT_YM ? 1 : ym === CURRENT_YM ? day / dim : 0));
+  const elapsedFraction = weights.reduce((s, w) => s + w, 0) / cur.length;
+
+  const company = {
+    actual: metricVals(aggregate(selectMonths(cur, f))),
+    baseline: metricVals(aggregate(selectMonths(prev, f))),
+  };
+
+  const brands = (f.brandId === "all" ? BRANDS : BRANDS.filter((b) => b.id === f.brandId)).map((b) => ({
+    id: b.id,
+    name: b.name,
+    color: b.color,
+    category: b.category,
+    actual: metricVals(aggregate(selectMonths(cur, { ...f, brandId: b.id, storeId: "all" }))),
+    baseline: metricVals(aggregate(selectMonths(prev, { ...f, brandId: b.id, storeId: "all" }))),
+  }));
+
+  const stores = filteredStores(f).map((s) => ({
+    id: s.id,
+    name: s.name,
+    brandColor: brandById(s.brandId)!.color,
+    category: brandById(s.brandId)!.category,
+    actual: metricVals(aggregate(selectMonths(cur, { ...f, storeId: s.id }))),
+    baseline: metricVals(aggregate(selectMonths(prev, { ...f, storeId: s.id }))),
+  }));
+
+  return {
+    period: {
+      label: cur.length === 1 ? cur[0] : `${cur[0]} 〜 ${cur[cur.length - 1]}`,
+      months: cur.length,
+      elapsedFraction,
+      compareLabel: prev.length === 1 ? prev[0] : `${prev[0]} 〜 ${prev[prev.length - 1]}`,
+    },
+    company,
+    brands,
+    stores,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
@@ -698,3 +751,4 @@ export type StoresData = ReturnType<typeof getStores>;
 export type StoreDetailData = NonNullable<ReturnType<typeof getStoreDetail>>;
 export type CustomersData = ReturnType<typeof getCustomers>;
 export type MarketingData = ReturnType<typeof getMarketing>;
+export type BudgetData = ReturnType<typeof getBudget>;
