@@ -33,7 +33,7 @@ export default function SalesPage({
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="売上高" value={h.revenue} format="yenCompact" delta={h.revenueDelta} compareLabel={compareText} sparkColor="#6366f1" />
+        <StatCard label="売上高" value={h.revenue} format="yenCompact" delta={h.revenueDelta} compareLabel={compareText} sparkColor="#0f766e" />
         <StatCard label="客単価" value={h.ticket} format="yen" delta={h.ticketDelta} compareLabel={compareText} sparkColor="#a855f7" />
         <StatCard label="来店客数" value={h.customers} format="number" delta={h.customersDelta} compareLabel={compareText} sparkColor="#0ea5e9" />
         <StatCard label="リピート率" value={h.repeatRate} format="percent" hint={`技術売上比率 ${formatPercent(h.techShare, 0)}`} sparkColor="#22c55e" />
@@ -45,7 +45,7 @@ export default function SalesPage({
             data={data.menuMix}
             layout="vertical"
             height={300}
-            series={[{ key: "amount", name: "売上", color: "#6366f1" }]}
+            series={[{ key: "amount", name: "売上", color: "#0f766e" }]}
           />
         </ChartCard>
 
@@ -56,7 +56,7 @@ export default function SalesPage({
             xFormat="month"
             yFormat="person"
             series={[
-              { key: "repeat", name: "リピート", color: "#6366f1", stackId: "a" },
+              { key: "repeat", name: "リピート", color: "#0f766e", stackId: "a" },
               { key: "new", name: "新規", color: "#f59e0b", stackId: "a" },
             ]}
           />

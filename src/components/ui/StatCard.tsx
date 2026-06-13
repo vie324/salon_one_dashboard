@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { formatValue } from "@/lib/format";
 import { Sparkline } from "@/components/charts/charts";
+import { AnimatedNumber } from "./AnimatedNumber";
 import { DeltaPill } from "./primitives";
 
 export interface StatCardProps {
@@ -27,7 +27,7 @@ export function StatCard({
   invert,
   compareLabel = "前年同期比",
   spark,
-  sparkColor = "#6366f1",
+  sparkColor = "#0f766e",
   hint,
   icon,
   className,
@@ -40,7 +40,7 @@ export function StatCard({
       </div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="text-[26px] font-bold leading-none tracking-tight tnum text-slate-900 dark:text-slate-50">
-          {formatValue(value, format)}
+          <AnimatedNumber value={value} format={format} />
         </span>
       </div>
       {delta !== undefined && (

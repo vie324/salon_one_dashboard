@@ -13,7 +13,7 @@ import type { ChannelKind } from "@/lib/types";
 export const metadata = { title: "マーケティング" };
 
 const KIND: Record<ChannelKind, { label: string; tone: "brand" | "info" | "success" | "neutral"; color: string }> = {
-  paid: { label: "広告", tone: "brand", color: "#6366f1" },
+  paid: { label: "広告", tone: "brand", color: "#0f766e" },
   owned: { label: "自社", tone: "info", color: "#0ea5e9" },
   referral: { label: "紹介", tone: "success", color: "#22c55e" },
   organic: { label: "自然流入", tone: "neutral", color: "#94a3b8" },
@@ -57,7 +57,7 @@ export default function MarketingPage({
             xFormat="month"
             yFormat="person"
             series={[
-              { key: "paid", name: "広告経由", color: "#6366f1", stackId: "a" },
+              { key: "paid", name: "広告経由", color: "#0f766e", stackId: "a" },
               { key: "other", name: "その他", color: "#94a3b8", stackId: "a" },
             ]}
           />

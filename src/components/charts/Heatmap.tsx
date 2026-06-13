@@ -37,7 +37,7 @@ export function Heatmap({
                     )}
                     style={
                       ratio > 0
-                        ? { backgroundColor: `rgba(99,102,241,${0.12 + ratio * 0.78})` }
+                        ? { backgroundColor: `rgba(15,118,110,${0.12 + ratio * 0.78})` }
                         : undefined
                     }
                   />
@@ -49,7 +49,7 @@ export function Heatmap({
         <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-slate-400">
           <span>少</span>
           {[0.15, 0.35, 0.55, 0.75, 0.95].map((o) => (
-            <span key={o} className="h-3 w-3 rounded-sm" style={{ backgroundColor: `rgba(99,102,241,${o})` }} />
+            <span key={o} className="h-3 w-3 rounded-sm" style={{ backgroundColor: `rgba(15,118,110,${o})` }} />
           ))}
           <span>多</span>
         </div>

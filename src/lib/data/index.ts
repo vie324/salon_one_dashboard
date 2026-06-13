@@ -624,7 +624,7 @@ export function getCustomers(f: Filters) {
   // RFM buckets (deterministic illustrative split of active base)
   const active = Math.round(a.customers * 3.4); // active base larger than monthly visitors
   const rfm = [
-    { label: "優良（VIP）", share: 0.12, color: "#6366f1" },
+    { label: "優良（VIP）", share: 0.12, color: "#0f766e" },
     { label: "ロイヤル", share: 0.2, color: "#14b8a6" },
     { label: "一般・安定", share: 0.34, color: "#0ea5e9" },
     { label: "離反兆候", share: 0.21, color: "#f59e0b" },
