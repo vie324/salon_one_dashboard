@@ -91,6 +91,15 @@ export default function FinancialsPage({
             </div>
           </ChartCard>
 
+          <ChartCard title="生産性指標" subtitle="人件費の効率">
+            <div className="space-y-3">
+              <KeyVal label="労働分配率" value={formatPercent(data.productivity.laborShare)} strong />
+              <KeyVal label="人件費率" value={formatPercent(data.productivity.laborCostRatio)} />
+              <KeyVal label="1人あたり付加価値" value={formatYenCompact(data.productivity.valueAddedPerStaff)} />
+              <p className="text-[11px] leading-relaxed text-slate-400">労働分配率 ＝ 人件費 ÷ 売上総利益（付加価値）。適正水準の維持が収益性の鍵です。</p>
+            </div>
+          </ChartCard>
+
           <ChartCard title="費用構成（販管費）" subtitle="コストの内訳">
             <DonutChart
               data={opexDonut}

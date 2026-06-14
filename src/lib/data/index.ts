@@ -442,6 +442,26 @@ export function getCashflow(f: Filters) {
   const t12 = trailing12(f);
   const cfTrend = monthlyAggs(t12, f).map(({ ym, agg }) => ({ label: ym, inflow: Math.round(agg.revenue), outflow: Math.round(agg.cogs + agg.opex), net: Math.round(agg.revenue - agg.cogs - agg.opex) }));
 
+  // cash balance forecast: running balance + 6-month projection
+  const openingCash = 28_000_000;
+  let bal = openingCash;
+  const histBal = monthlyAggs(t12, f).map(({ ym, agg }) => {
+    bal += agg.revenue - agg.cogs - agg.opex;
+    return { ym, bal };
+  });
+  const recentNet = cfTrend.slice(-3).reduce((s, p) => s + p.net, 0) / 3;
+  const last6 = histBal.slice(-6);
+  const cashForecast: { label: string; actual: number | null; forecast: number | null }[] = last6.map((h, i) => ({
+    label: h.ym,
+    actual: Math.round(h.bal),
+    forecast: i === last6.length - 1 ? Math.round(h.bal) : null,
+  }));
+  let proj = histBal[histBal.length - 1].bal;
+  for (let i = 1; i <= 6; i++) {
+    proj += recentNet;
+    cashForecast.push({ label: shiftYm(CURRENT_YM, i), actual: null, forecast: Math.round(proj) });
+  }
+
   // prepaid liability + subscription mrr (latest)
   const prepaid = PREPAID_MONTHS[PREPAID_MONTHS.length - 1];
   const prepaidTrend = PREPAID_MONTHS.slice(-12).map((p) => ({ label: p.ym, balance: Math.round(p.balance), sold: Math.round(p.sold), consumed: Math.round(p.consumed) }));
@@ -463,6 +483,7 @@ export function getCashflow(f: Filters) {
     settlements, scheduled, paid, delayed,
     byProcessor,
     cfTrend,
+    cashForecast,
     prepaid: { balance: prepaid.balance, sold: prepaid.sold, consumed: prepaid.consumed, trend: prepaidTrend },
     subscription: { members: sub.members, mrr: sub.mrr, churn: sub.churnedMembers, newMembers: sub.newMembers },
   };
@@ -530,8 +551,15 @@ export function getFinancials(f: Filters) {
   const variableRatio = a.revenue ? variable / a.revenue : 0;
   const breakevenRevenue = variableRatio < 1 ? fixed / (1 - variableRatio) : 0;
 
+  // labour productivity (付加価値 ≈ 売上総利益)
+  const productivity = {
+    laborShare: a.grossProfit ? a.cost.labor / a.grossProfit : 0, // 労働分配率
+    laborCostRatio: a.revenue ? a.cost.labor / a.revenue : 0, // 人件費率
+    valueAddedPerStaff: a.grossProfit / Math.max(1, filteredStores(f).reduce((s, st) => s + st.staff, 0)),
+  };
+
   return {
-    pl, byBrand, byStore, trend,
+    pl, byBrand, byStore, trend, productivity,
     breakeven: { revenue: a.revenue, breakevenRevenue, fixed, variableRatio, marginOfSafety: a.revenue ? (a.revenue - breakevenRevenue) / a.revenue : 0 },
     period: { months: cur.length, label: cur.length === 1 ? cur[0] : `${cur[0]} 〜 ${cur[cur.length - 1]}`, compareLabel: prev.length === 1 ? prev[0] : `${prev[0]} 〜 ${prev[prev.length - 1]}` },
   };
@@ -659,6 +687,17 @@ export function getCustomers(f: Filters) {
   const sub = SUBSCRIPTION_MONTHS[SUBSCRIPTION_MONTHS.length - 1];
   const subTrend = SUBSCRIPTION_MONTHS.slice(-12).map((s) => ({ label: s.ym, members: s.members, mrr: Math.round(s.mrr), churn: s.churnedMembers }));
 
+  // cohort retention: last 6 acquisition months × months since acquisition
+  const cohortMonths = ymRange(shiftYm(CURRENT_YM, -5), CURRENT_YM);
+  const cohort = cohortMonths.map((ym, i) => {
+    const size = aggregate(selectMonths([ym], f)).newCustomers;
+    const maxOff = cohortMonths.length - 1 - i;
+    const base = 0.74 + (Number(ym.split("-")[1]) % 6) / 60;
+    const values: number[] = [];
+    for (let o = 0; o <= maxOff; o++) values.push(o === 0 ? 1 : Math.max(0.18, Math.pow(base, o)));
+    return { label: ym, size, values };
+  });
+
   return {
     headline: {
       active, newCustomers: a.newCustomers, newDelta: safeDelta(a.newCustomers, p.newCustomers),
@@ -667,6 +706,7 @@ export function getCustomers(f: Filters) {
     rfm, trend,
     subscription: { members: sub.members, mrr: sub.mrr, churn: sub.churnedMembers, newMembers: sub.newMembers, trend: subTrend },
     prepaid: { balance: prepaid.balance, consumed: prepaid.consumed, sold: prepaid.sold },
+    cohort: { maxOffset: cohortMonths.length - 1, rows: cohort },
   };
 }
 
