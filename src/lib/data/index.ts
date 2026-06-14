@@ -751,7 +751,24 @@ export function getMarketing(f: Filters) {
     return { label: ym, paid, other, spend };
   });
 
-  return { rows, totals, blendedCpa, blendedRoas, trend };
+  // online reputation (口コミ) — Google / HotPepper Beauty
+  const reviews = {
+    googleRating: 4.5,
+    hpbRating: 4.4,
+    totalReviews: 3820,
+    monthlyNew: 142,
+    responded: 118,
+    responseRate: 118 / 142,
+    distribution: [
+      { star: 5, count: 2480 },
+      { star: 4, count: 920 },
+      { star: 3, count: 280 },
+      { star: 2, count: 90 },
+      { star: 1, count: 50 },
+    ],
+  };
+
+  return { rows, totals, blendedCpa, blendedRoas, trend, reviews };
 }
 
 // ============================================================
@@ -847,10 +864,59 @@ export function getInventory(f: Filters) {
   };
 }
 
+// ============================================================
+// Cancellation fees (キャンセル料・無断対策)
+// ============================================================
+
+export function getCancellations(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, f));
+  const avgFee = 3300;
+  const avgTicket = a.customers ? a.revenue / a.customers : 0;
+  const billed = Math.round(a.noShows * avgFee + a.cancellations * 0.1 * avgFee);
+  const collectRate = 0.78;
+  const collected = Math.round(billed * collectRate);
+  const outstanding = billed - collected;
+  const opportunityLoss = Math.round((a.cancellations + a.noShows) * avgTicket * 0.6);
+
+  const t12 = trailing12(f);
+  const trend = monthlyAggs(t12, f).map(({ ym, agg }) => ({
+    label: ym,
+    noShows: agg.noShows,
+    cancellations: agg.cancellations,
+    billed: Math.round(agg.noShows * avgFee + agg.cancellations * 0.1 * avgFee),
+  }));
+
+  const offenders = [
+    { id: "c1", name: "T. M 様", masked: "•••• 1842", count: 4, lastDate: `${CURRENT_YM}-09`, outstanding: 13200 },
+    { id: "c2", name: "K. S 様", masked: "•••• 7705", count: 3, lastDate: `${CURRENT_YM}-07`, outstanding: 9900 },
+    { id: "c3", name: "R. Y 様", masked: "•••• 3391", count: 3, lastDate: `${CURRENT_YM}-05`, outstanding: 0 },
+    { id: "c4", name: "A. N 様", masked: "•••• 2210", count: 2, lastDate: `${CURRENT_YM}-11`, outstanding: 6600 },
+    { id: "c5", name: "M. H 様", masked: "•••• 9087", count: 2, lastDate: `${CURRENT_YM}-03`, outstanding: 3300 },
+  ];
+
+  return {
+    summary: {
+      billed,
+      collected,
+      outstanding,
+      collectRate,
+      opportunityLoss,
+      noShows: a.noShows,
+      cancellations: a.cancellations,
+      cancelRate: a.reservations ? a.cancellations / a.reservations : 0,
+      noShowRate: a.reservations ? a.noShows / a.reservations : 0,
+    },
+    trend,
+    offenders,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
 export type InventoryData = ReturnType<typeof getInventory>;
+export type CancellationsData = ReturnType<typeof getCancellations>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;

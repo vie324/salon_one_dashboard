@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  CalendarX,
   FileText,
   LayoutDashboard,
   Landmark,
@@ -34,8 +35,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -77,6 +78,7 @@ export const NAV: NavGroup[] = [
     label: "運営",
     items: [
       { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
+      { href: "/cancellations", label: "キャンセル料", icon: CalendarX, desc: "無断/直前キャンセルの請求・回収・常習者" },
     ],
   },
   {
