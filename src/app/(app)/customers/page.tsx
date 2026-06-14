@@ -112,7 +112,55 @@ export default function CustomersPage({
           </div>
         </ChartCard>
       </div>
+
+      <ChartCard className="mt-4" title="コホート継続率" subtitle="獲得月別の再来（リピート）継続率。右に行くほど獲得からの経過月数" icon={<Repeat className="h-[18px] w-[18px]" />}>
+        <CohortGrid data={data.cohort} />
+      </ChartCard>
     </>
+  );
+}
+
+function CohortGrid({ data }: { data: { maxOffset: number; rows: { label: string; size: number; values: number[] }[] } }) {
+  const offsets = Array.from({ length: data.maxOffset + 1 }, (_, i) => i);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-xs text-slate-400">
+            <th className="th">獲得月</th>
+            <th className="th text-right">獲得数</th>
+            {offsets.map((o) => (
+              <th key={o} className="th text-center">{o === 0 ? "当月" : `+${o}ヶ月`}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.rows.map((r) => (
+            <tr key={r.label} className="border-b border-slate-50 last:border-0 dark:border-slate-800/40">
+              <td className="td font-medium text-slate-800 dark:text-slate-100">{formatYm(r.label, true)}</td>
+              <td className="td text-right tnum text-slate-500">{formatNumber(r.size)}</td>
+              {offsets.map((o) => {
+                const v = r.values[o];
+                return (
+                  <td key={o} className="td text-center">
+                    {v === undefined ? (
+                      <span className="text-slate-300 dark:text-slate-700">—</span>
+                    ) : (
+                      <span
+                        className="inline-block min-w-[3rem] rounded-md px-2 py-1 text-xs font-semibold tnum"
+                        style={{ backgroundColor: `rgba(15,118,110,${0.1 + v * 0.8})`, color: v > 0.5 ? "#fff" : "#0f766e" }}
+                      >
+                        {Math.round(v * 100)}%
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, Card, CardHeader } from "@/components/ui/primitives";
+import { SortableTable, type Column, type Row } from "@/components/ui/SortableTable";
 import { getReconciliation } from "@/lib/data";
 import { parseFilters } from "@/lib/filters";
 import { formatNumber, formatYen, formatYenCompact } from "@/lib/format";
@@ -26,6 +27,30 @@ export default function ReconciliationPage({
   const filters = parseFilters(searchParams);
   const data = getReconciliation(filters);
   const total = data.summary.matched + data.summary.investigating + data.summary.unmatched;
+
+  const detailCols: Column[] = [
+    { key: "date", label: "日付", type: "text", align: "center" },
+    { key: "store", label: "店舗", type: "entity" },
+    { key: "method", label: "手段", type: "text" },
+    { key: "processor", label: "決済代行", type: "text" },
+    { key: "recorded", label: "売上記録", type: "yen", align: "right" },
+    { key: "settled", label: "実入金", type: "yen", align: "right" },
+    { key: "diff", label: "差異", type: "yen", align: "right", signed: true, zeroDash: true },
+    { key: "status", label: "状況", type: "badge", align: "center" },
+    { key: "note", label: "メモ", type: "text" },
+  ];
+  const detailRows: Row[] = data.rows.map((r) => ({
+    date: r.date.slice(5),
+    store: r.storeName,
+    method: r.methodLabel,
+    processor: r.processorName,
+    recorded: r.recorded,
+    settled: r.settled,
+    diff: r.diff,
+    status: RSTATUS[r.status].label,
+    statusTone: RSTATUS[r.status].tone,
+    note: r.note,
+  }));
 
   return (
     <>
@@ -90,45 +115,9 @@ export default function ReconciliationPage({
 
       {/* detail */}
       <Card className="mt-4">
-        <CardHeader
-          title="突合明細"
-          subtitle="差異の大きい順。クリックで該当伝票へ（連携後）。"
-          actions={<span className="text-xs text-slate-400">{data.rows.length} 件</span>}
-        />
-        <div className="mt-2 overflow-x-auto px-2 pb-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="th">日付</th>
-                <th className="th">店舗</th>
-                <th className="th">手段 / 代行</th>
-                <th className="th text-right">売上記録</th>
-                <th className="th text-right">実入金</th>
-                <th className="th text-right">差異</th>
-                <th className="th text-center">状況</th>
-                <th className="th">メモ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((r) => (
-                <tr key={r.id} className="row-hover border-b border-slate-50 last:border-0 dark:border-slate-800/40">
-                  <td className="td tnum text-slate-500">{r.date.slice(5)}</td>
-                  <td className="td font-medium text-slate-800 dark:text-slate-100">{r.storeName}</td>
-                  <td className="td text-slate-500">
-                    <div>{r.methodLabel}</div>
-                    <div className="text-xs text-slate-400">{r.processorName}</div>
-                  </td>
-                  <td className="td text-right tnum">{formatYen(r.recorded)}</td>
-                  <td className="td text-right tnum">{formatYen(r.settled)}</td>
-                  <td className={`td text-right tnum font-semibold ${r.diff < 0 ? "text-rose-600 dark:text-rose-400" : r.diff > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
-                    {r.diff === 0 ? "—" : formatYen(r.diff)}
-                  </td>
-                  <td className="td text-center"><Badge tone={RSTATUS[r.status].tone}>{RSTATUS[r.status].label}</Badge></td>
-                  <td className="td text-xs text-slate-400">{r.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardHeader title="突合明細" subtitle="列ヘッダーで並べ替え・絞り込み・CSV出力（既定は差異の大きい順）" />
+        <div className="mt-1 pb-2">
+          <SortableTable columns={detailCols} rows={detailRows} defaultSort="diff" initialDir="asc" searchable exportName="入金突合明細" />
         </div>
       </Card>
     </>

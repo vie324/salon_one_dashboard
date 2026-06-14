@@ -4,11 +4,12 @@ import { Heatmap } from "@/components/charts/Heatmap";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
+import { SortableTable, type Column, type Row } from "@/components/ui/SortableTable";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, Card, CardHeader, DeltaPill, ProgressBar } from "@/components/ui/primitives";
 import { getSales } from "@/lib/data";
 import { parseFilters } from "@/lib/filters";
-import { formatNumber, formatPercent, formatYen, formatYenCompact, formatYm } from "@/lib/format";
+import { formatPercent, formatYen, formatYenCompact } from "@/lib/format";
 
 export const metadata = { title: "売上・実績" };
 
@@ -22,6 +23,32 @@ export default function SalesPage({
   const h = data.headline;
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
   const maxBrandRev = Math.max(...data.brandRows.map((b) => b.revenue), 1);
+
+  const menuCols: Column[] = [
+    { key: "label", label: "メニュー", type: "text" },
+    { key: "amount", label: "売上", type: "yenCompact", align: "right" },
+    { key: "grossProfit", label: "粗利", type: "yenCompact", align: "right" },
+    { key: "marginRate", label: "粗利率", type: "percent", align: "right" },
+  ];
+  const menuRows: Row[] = data.menuMix.map((m) => ({ label: m.label, amount: m.amount, grossProfit: m.grossProfit, marginRate: m.marginRate }));
+
+  const staffCols: Column[] = [
+    { key: "name", label: "スタッフ", type: "text" },
+    { key: "store", label: "店舗", type: "entity" },
+    { key: "sales", label: "技術売上", type: "yenCompact", align: "right" },
+    { key: "customers", label: "担当客数", type: "number", align: "right" },
+    { key: "designationRate", label: "指名率", type: "percent", align: "right" },
+    { key: "retentionRate", label: "再来率", type: "percent", align: "right" },
+  ];
+  const staffRows: Row[] = data.staff.map((s) => ({
+    name: s.name,
+    store: s.storeName,
+    _color: s.brandColor,
+    sales: s.sales,
+    customers: s.customers,
+    designationRate: s.designationRate,
+    retentionRate: s.retentionRate,
+  }));
 
   return (
     <>
@@ -40,14 +67,12 @@ export default function SalesPage({
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <ChartCard className="xl:col-span-5" title="メニュー別 売上" subtitle="上位カテゴリ" icon={<BarChart3 className="h-[18px] w-[18px]" />}>
-          <BarsChart
-            data={data.menuMix}
-            layout="vertical"
-            height={300}
-            series={[{ key: "amount", name: "売上", color: "#0f766e" }]}
-          />
-        </ChartCard>
+        <Card className="xl:col-span-5">
+          <CardHeader title="メニュー別 売上・粗利" subtitle="上位カテゴリ（粗利率つき）" icon={<BarChart3 className="h-[18px] w-[18px]" />} />
+          <div className="mt-1 pb-2">
+            <SortableTable columns={menuCols} rows={menuRows} defaultSort="amount" exportName="メニュー別売上" />
+          </div>
+        </Card>
 
         <ChartCard className="xl:col-span-7" title="新規 / リピート 推移" subtitle="直近12ヶ月の来店客数構成" icon={<Users className="h-[18px] w-[18px]" />}>
           <BarsChart
@@ -106,39 +131,9 @@ export default function SalesPage({
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="スタッフ成績ランキング" subtitle="個人売上・指名率・再来率" icon={<Award className="h-[18px] w-[18px]" />} actions={<span className="text-xs text-slate-400">上位 {data.staff.length} 名</span>} />
-        <div className="mt-2 overflow-x-auto px-2 pb-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="th w-10">#</th>
-                <th className="th">スタッフ</th>
-                <th className="th">店舗</th>
-                <th className="th text-right">技術売上</th>
-                <th className="th text-right">担当客数</th>
-                <th className="th text-right">指名率</th>
-                <th className="th text-right">再来率</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.staff.map((s, i) => (
-                <tr key={s.id} className="row-hover border-b border-slate-50 last:border-0 dark:border-slate-800/40">
-                  <td className="td text-slate-400">{i + 1}</td>
-                  <td className="td font-medium text-slate-800 dark:text-slate-100">{s.name}</td>
-                  <td className="td">
-                    <span className="flex items-center gap-2 text-slate-500">
-                      <span className="h-2 w-2 rounded-full" style={{ background: s.brandColor }} />
-                      {s.storeName}
-                    </span>
-                  </td>
-                  <td className="td text-right tnum">{formatYenCompact(s.sales)}</td>
-                  <td className="td text-right tnum">{formatNumber(s.customers)}</td>
-                  <td className="td text-right tnum">{formatPercent(s.designationRate, 0)}</td>
-                  <td className="td text-right tnum">{formatPercent(s.retentionRate, 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardHeader title="スタッフ成績ランキング" subtitle="個人売上・指名率・再来率。並べ替え・絞り込み・CSV出力" icon={<Award className="h-[18px] w-[18px]" />} />
+        <div className="mt-1 pb-2">
+          <SortableTable columns={staffCols} rows={staffRows} defaultSort="sales" searchable exportName="スタッフ成績" />
         </div>
       </Card>
     </>

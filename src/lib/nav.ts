@@ -7,6 +7,7 @@ import {
   Scale,
   Settings,
   Store,
+  Target,
   Users,
   Wallet,
   type LucideIcon,
@@ -20,6 +21,28 @@ export interface NavItem {
   desc?: string;
 }
 
+// ---- Role-based access (demo of RBAC; real enforcement is server-side) ----
+export type Role = "owner" | "area" | "finance" | "viewer";
+
+export const ROLES: { key: Role; label: string; desc: string }[] = [
+  { key: "owner", label: "経営者", desc: "全権限" },
+  { key: "area", label: "エリアマネージャー", desc: "分析・店舗" },
+  { key: "finance", label: "経理・財務", desc: "資金・財務・レポート" },
+  { key: "viewer", label: "閲覧（税理士）", desc: "財務・レポートの閲覧" },
+];
+
+const ACCESS: Record<Role, string[] | "all"> = {
+  owner: "all",
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings"],
+  viewer: ["/", "/financials", "/reports"],
+};
+
+export function canAccess(role: Role, href: string): boolean {
+  const a = ACCESS[role];
+  return a === "all" || a.includes(href);
+}
+
 export interface NavGroup {
   label: string;
   items: NavItem[];
@@ -30,6 +53,7 @@ export const NAV: NavGroup[] = [
     label: "経営概況",
     items: [
       { href: "/", label: "ダッシュボード", icon: LayoutDashboard, desc: "全社KPIと要対応事項" },
+      { href: "/budget", label: "予実・目標", icon: Target, desc: "業態別の予算・目標と実績管理" },
     ],
   },
   {

@@ -1,24 +1,29 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
-import Link from "next/link";
+import { Menu, Rows3, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { routeTitle } from "@/lib/nav";
+import type { AlertItem } from "@/lib/data";
+import { useUiPrefs } from "@/components/providers/UiPrefs";
 import { Avatar } from "./Logo";
 import { FilterBar, type FilterBrand, type FilterStore } from "./FilterBar";
+import { NotificationCenter } from "./NotificationCenter";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Topbar({
   brands,
   stores,
+  alerts,
   onMenu,
 }: {
   brands: FilterBrand[];
   stores: FilterStore[];
+  alerts: AlertItem[];
   onMenu: () => void;
 }) {
   const pathname = usePathname();
   const title = routeTitle(pathname);
+  const { density, setDensity } = useUiPrefs();
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur-md dark:bg-slate-950/80 print:hidden">
@@ -44,11 +49,16 @@ export function Topbar({
             <span className="hidden lg:inline">検索・移動</span>
             <kbd className="rounded border border-slate-200 px-1 text-[10px] dark:border-slate-700">⌘K</kbd>
           </button>
+          <button
+            onClick={() => setDensity(density === "compact" ? "comfortable" : "compact")}
+            className="btn btn-ghost btn-icon hidden sm:flex"
+            aria-label="表示密度"
+            title={density === "compact" ? "標準表示に切替" : "コンパクト表示に切替"}
+          >
+            <Rows3 className="h-[18px] w-[18px]" />
+          </button>
           <ThemeToggle />
-          <Link href="/" className="btn btn-ghost btn-icon relative" aria-label="アラート" title="要対応アラート">
-            <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-950" />
-          </Link>
+          <NotificationCenter alerts={alerts} />
           <div className="ml-1 hidden items-center gap-2 sm:flex">
             <Avatar name="経営管理本部" />
           </div>

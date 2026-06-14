@@ -4,7 +4,8 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { NAV } from "@/lib/nav";
+import { NAV, ROLES, canAccess, type Role } from "@/lib/nav";
+import { useUiPrefs } from "@/components/providers/UiPrefs";
 import { Avatar, Logo } from "./Logo";
 
 function isActive(pathname: string, href: string): boolean {
@@ -24,6 +25,8 @@ export function Sidebar({
   const pathname = usePathname();
   const search = useSearchParams();
   const qs = search.toString() ? `?${search.toString()}` : "";
+  const { role, setRole } = useUiPrefs();
+  const groups = NAV.map((g) => ({ ...g, items: g.items.filter((i) => canAccess(role, i.href)) })).filter((g) => g.items.length);
 
   return (
     <div className="flex h-full flex-col">
@@ -45,7 +48,7 @@ export function Sidebar({
 
       {/* nav */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
-        {NAV.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -78,15 +81,29 @@ export function Sidebar({
 
       {/* footer */}
       <div className="border-t p-3">
-        <div className={cn("flex items-center gap-2.5 rounded-xl px-2 py-2", !collapsed && "bg-slate-50 dark:bg-slate-900")}>
-          <Avatar name="経営管理本部" />
-          {!collapsed && (
-            <div className="min-w-0 leading-tight">
-              <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">経営管理本部</p>
-              <p className="truncate text-[11px] text-slate-400">info@viecompany.net</p>
+        {!collapsed ? (
+          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-900">
+            <div className="flex items-center gap-2.5 px-1 pb-2">
+              <Avatar name="経営管理本部" />
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">経営管理本部</p>
+                <p className="truncate text-[11px] text-slate-400">info@viecompany.net</p>
+              </div>
             </div>
-          )}
-        </div>
+            <label className="block px-1">
+              <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-400">表示ロール（デモ）</span>
+              <select className="select h-8 w-full text-xs" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                {ROLES.map((r) => (
+                  <option key={r.key} value={r.key}>{r.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <Avatar name="経営管理本部" />
+          </div>
+        )}
       </div>
     </div>
   );

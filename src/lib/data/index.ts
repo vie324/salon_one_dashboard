@@ -18,6 +18,7 @@ import {
 } from "@/lib/filters";
 import {
   BRANDS,
+  CATEGORY_PROFILE,
   CHANNELS,
   PAYMENT_MIX,
   PROCESSORS,
@@ -172,7 +173,7 @@ export function getCatalog() {
 // ============================================================
 
 export function getOverview(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -273,6 +274,19 @@ function buildAlerts(f: Filters, storeRows: { id: string; name: string; revenue:
   return alerts.slice(0, 6);
 }
 
+/** Global, unfiltered alert feed for the notification centre. */
+export function getAlerts(): AlertItem[] {
+  const f: Filters = { period: "thisMonth", brandId: "all", storeId: "all", compare: "prevYear" };
+  const cur = periodMonths(f);
+  const prev = comparisonMonths(f);
+  const storeRows = STORES.map((s) => {
+    const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
+    const sp = aggregate(selectMonths(prev, { ...f, storeId: s.id }));
+    return { id: s.id, name: s.name, revenue: sa.revenue, operatingProfit: sa.operatingProfit, growth: safeDelta(sa.revenue, sp.revenue) };
+  });
+  return buildAlerts(f, storeRows);
+}
+
 function getTrend(f: Filters) {
   if (f.period === "thisMonth") {
     const stores = new Set(filteredStores(f).map((s) => s.id));
@@ -285,8 +299,13 @@ function getTrend(f: Filters) {
     const points = Object.keys(byDate).sort().map((date) => ({ label: date, value: Math.round(byDate[date].revenue), forecast: byDate[date].isFuture ? Math.round(byDate[date].revenue) : null, actual: byDate[date].isFuture ? null : Math.round(byDate[date].revenue) }));
     return { granularity: "daily" as const, points };
   }
-  const yms = f.period === "lastMonth" ? ymRange(shiftYm(CURRENT_YM, -6), shiftYm(CURRENT_YM, -1)) : periodMonths(f.period);
-  const points = monthlyAggs(yms, f).map(({ ym, agg }) => ({ label: ym, value: Math.round(agg.revenue), profit: Math.round(agg.operatingProfit) }));
+  const yms = f.period === "lastMonth" ? ymRange(shiftYm(CURRENT_YM, -6), shiftYm(CURRENT_YM, -1)) : periodMonths(f);
+  const points = monthlyAggs(yms, f).map(({ ym, agg }) => ({
+    label: ym,
+    value: Math.round(agg.revenue),
+    profit: Math.round(agg.operatingProfit),
+    prev: Math.round(aggregate(selectMonths([shiftYm(ym, -12)], f)).revenue),
+  }));
   return { granularity: "monthly" as const, points };
 }
 
@@ -295,22 +314,29 @@ function getTrend(f: Filters) {
 // ============================================================
 
 export function getSales(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
 
-  // menu mix — derive from brand categories in scope
+  // menu mix (with gross margin) — derive from brand categories in scope
   const menuTotals: Record<string, number> = {};
+  const menuCost: Record<string, number> = {};
   for (const m of selectMonths(cur, f)) {
     const brand = brandById(m.brandId)!;
-    const groups = (MENU_WEIGHTS[brand.category] ?? []);
+    const groups = MENU_WEIGHTS[brand.category] ?? [];
     const techPlusProduct = m.revenueTech + m.revenueProduct;
+    const cogs = CATEGORY_PROFILE[brand.category].cogsRatio;
     for (const g of groups) {
-      menuTotals[g.label] = (menuTotals[g.label] ?? 0) + techPlusProduct * g.weight;
+      const amt = techPlusProduct * g.weight;
+      menuTotals[g.label] = (menuTotals[g.label] ?? 0) + amt;
+      menuCost[g.label] = (menuCost[g.label] ?? 0) + amt * cogs;
     }
   }
-  const menuMix = Object.entries(menuTotals).map(([label, amount]) => ({ label, amount })).sort((x, y) => y.amount - x.amount).slice(0, 8);
+  const menuMix = Object.entries(menuTotals)
+    .map(([label, amount]) => ({ label, amount, grossProfit: amount - (menuCost[label] ?? 0), marginRate: amount ? 1 - (menuCost[label] ?? 0) / amount : 0 }))
+    .sort((x, y) => y.amount - x.amount)
+    .slice(0, 8);
 
   // staff ranking
   const staff = STAFF_PERF.filter((s) => (f.brandId === "all" || s.brandId === f.brandId) && (f.storeId === "all" || s.storeId === f.storeId))
@@ -392,7 +418,7 @@ function buildHeatmap(f: Filters) {
 // ============================================================
 
 export function getCashflow(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const split = paymentSplit(selectMonths(cur, f)).sort((x, y) => y.amount - x.amount);
 
@@ -421,6 +447,26 @@ export function getCashflow(f: Filters) {
   const t12 = trailing12(f);
   const cfTrend = monthlyAggs(t12, f).map(({ ym, agg }) => ({ label: ym, inflow: Math.round(agg.revenue), outflow: Math.round(agg.cogs + agg.opex), net: Math.round(agg.revenue - agg.cogs - agg.opex) }));
 
+  // cash balance forecast: running balance + 6-month projection
+  const openingCash = 28_000_000;
+  let bal = openingCash;
+  const histBal = monthlyAggs(t12, f).map(({ ym, agg }) => {
+    bal += agg.revenue - agg.cogs - agg.opex;
+    return { ym, bal };
+  });
+  const recentNet = cfTrend.slice(-3).reduce((s, p) => s + p.net, 0) / 3;
+  const last6 = histBal.slice(-6);
+  const cashForecast: { label: string; actual: number | null; forecast: number | null }[] = last6.map((h, i) => ({
+    label: h.ym,
+    actual: Math.round(h.bal),
+    forecast: i === last6.length - 1 ? Math.round(h.bal) : null,
+  }));
+  let proj = histBal[histBal.length - 1].bal;
+  for (let i = 1; i <= 6; i++) {
+    proj += recentNet;
+    cashForecast.push({ label: shiftYm(CURRENT_YM, i), actual: null, forecast: Math.round(proj) });
+  }
+
   // prepaid liability + subscription mrr (latest)
   const prepaid = PREPAID_MONTHS[PREPAID_MONTHS.length - 1];
   const prepaidTrend = PREPAID_MONTHS.slice(-12).map((p) => ({ label: p.ym, balance: Math.round(p.balance), sold: Math.round(p.sold), consumed: Math.round(p.consumed) }));
@@ -442,6 +488,7 @@ export function getCashflow(f: Filters) {
     settlements, scheduled, paid, delayed,
     byProcessor,
     cfTrend,
+    cashForecast,
     prepaid: { balance: prepaid.balance, sold: prepaid.sold, consumed: prepaid.consumed, trend: prepaidTrend },
     subscription: { members: sub.members, mrr: sub.mrr, churn: sub.churnedMembers, newMembers: sub.newMembers },
   };
@@ -480,7 +527,7 @@ export function getReconciliation(f: Filters) {
 // ============================================================
 
 export function getFinancials(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -509,8 +556,15 @@ export function getFinancials(f: Filters) {
   const variableRatio = a.revenue ? variable / a.revenue : 0;
   const breakevenRevenue = variableRatio < 1 ? fixed / (1 - variableRatio) : 0;
 
+  // labour productivity (付加価値 ≈ 売上総利益)
+  const productivity = {
+    laborShare: a.grossProfit ? a.cost.labor / a.grossProfit : 0, // 労働分配率
+    laborCostRatio: a.revenue ? a.cost.labor / a.revenue : 0, // 人件費率
+    valueAddedPerStaff: a.grossProfit / Math.max(1, filteredStores(f).reduce((s, st) => s + st.staff, 0)),
+  };
+
   return {
-    pl, byBrand, byStore, trend,
+    pl, byBrand, byStore, trend, productivity,
     breakeven: { revenue: a.revenue, breakevenRevenue, fixed, variableRatio, marginOfSafety: a.revenue ? (a.revenue - breakevenRevenue) / a.revenue : 0 },
     period: { months: cur.length, label: cur.length === 1 ? cur[0] : `${cur[0]} 〜 ${cur[cur.length - 1]}`, compareLabel: prev.length === 1 ? prev[0] : `${prev[0]} 〜 ${prev[prev.length - 1]}` },
   };
@@ -555,7 +609,7 @@ function buildPL(a: Agg, p: Agg): PLLine[] {
 // ============================================================
 
 export function getStores(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const rows = filteredStores(f).map((s) => {
     const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
@@ -585,7 +639,7 @@ export function getStoreDetail(storeId: string, f: Filters) {
   const s = storeById(storeId);
   if (!s) return null;
   const sf = { ...f, brandId: "all", storeId };
-  const cur = periodMonths(sf.period);
+  const cur = periodMonths(sf);
   const prev = comparisonMonths(sf);
   const a = aggregate(selectMonths(cur, sf));
   const p = aggregate(selectMonths(prev, sf));
@@ -608,7 +662,7 @@ export function getStoreDetail(storeId: string, f: Filters) {
 // ============================================================
 
 export function getCustomers(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -638,6 +692,17 @@ export function getCustomers(f: Filters) {
   const sub = SUBSCRIPTION_MONTHS[SUBSCRIPTION_MONTHS.length - 1];
   const subTrend = SUBSCRIPTION_MONTHS.slice(-12).map((s) => ({ label: s.ym, members: s.members, mrr: Math.round(s.mrr), churn: s.churnedMembers }));
 
+  // cohort retention: last 6 acquisition months × months since acquisition
+  const cohortMonths = ymRange(shiftYm(CURRENT_YM, -5), CURRENT_YM);
+  const cohort = cohortMonths.map((ym, i) => {
+    const size = aggregate(selectMonths([ym], f)).newCustomers;
+    const maxOff = cohortMonths.length - 1 - i;
+    const base = 0.74 + (Number(ym.split("-")[1]) % 6) / 60;
+    const values: number[] = [];
+    for (let o = 0; o <= maxOff; o++) values.push(o === 0 ? 1 : Math.max(0.18, Math.pow(base, o)));
+    return { label: ym, size, values };
+  });
+
   return {
     headline: {
       active, newCustomers: a.newCustomers, newDelta: safeDelta(a.newCustomers, p.newCustomers),
@@ -646,6 +711,7 @@ export function getCustomers(f: Filters) {
     rfm, trend,
     subscription: { members: sub.members, mrr: sub.mrr, churn: sub.churnedMembers, newMembers: sub.newMembers, trend: subTrend },
     prepaid: { balance: prepaid.balance, consumed: prepaid.consumed, sold: prepaid.sold },
+    cohort: { maxOffset: cohortMonths.length - 1, rows: cohort },
   };
 }
 
@@ -654,7 +720,7 @@ export function getCustomers(f: Filters) {
 // ============================================================
 
 export function getMarketing(f: Filters) {
-  const cur = new Set(periodMonths(f.period));
+  const cur = new Set(periodMonths(f));
   // channel performance aggregated over the period (company-level data)
   const rows = CHANNELS.map((ch) => {
     const cm = CHANNEL_MONTHS.filter((c) => c.channelId === ch.id && cur.has(c.ym));
@@ -686,6 +752,59 @@ export function getMarketing(f: Filters) {
   return { rows, totals, blendedCpa, blendedRoas, trend };
 }
 
+// ============================================================
+// Budget / targets (予実・目標)
+// ============================================================
+
+function metricVals(a: Agg) {
+  return { revenue: a.revenue, profit: a.operatingProfit, customers: a.customers, newCustomers: a.newCustomers };
+}
+
+export function getBudget(f: Filters) {
+  const cur = periodMonths(f);
+  const prev = comparisonMonths(f);
+  const day = Number(TODAY.split("-")[2]);
+  const [cy, cm] = CURRENT_YM.split("-").map(Number);
+  const dim = new Date(cy, cm, 0).getDate();
+  const weights = cur.map((ym) => (ym < CURRENT_YM ? 1 : ym === CURRENT_YM ? day / dim : 0));
+  const elapsedFraction = weights.reduce((s, w) => s + w, 0) / cur.length;
+
+  const company = {
+    actual: metricVals(aggregate(selectMonths(cur, f))),
+    baseline: metricVals(aggregate(selectMonths(prev, f))),
+  };
+
+  const brands = (f.brandId === "all" ? BRANDS : BRANDS.filter((b) => b.id === f.brandId)).map((b) => ({
+    id: b.id,
+    name: b.name,
+    color: b.color,
+    category: b.category,
+    actual: metricVals(aggregate(selectMonths(cur, { ...f, brandId: b.id, storeId: "all" }))),
+    baseline: metricVals(aggregate(selectMonths(prev, { ...f, brandId: b.id, storeId: "all" }))),
+  }));
+
+  const stores = filteredStores(f).map((s) => ({
+    id: s.id,
+    name: s.name,
+    brandColor: brandById(s.brandId)!.color,
+    category: brandById(s.brandId)!.category,
+    actual: metricVals(aggregate(selectMonths(cur, { ...f, storeId: s.id }))),
+    baseline: metricVals(aggregate(selectMonths(prev, { ...f, storeId: s.id }))),
+  }));
+
+  return {
+    period: {
+      label: cur.length === 1 ? cur[0] : `${cur[0]} 〜 ${cur[cur.length - 1]}`,
+      months: cur.length,
+      elapsedFraction,
+      compareLabel: prev.length === 1 ? prev[0] : `${prev[0]} 〜 ${prev[prev.length - 1]}`,
+    },
+    company,
+    brands,
+    stores,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
@@ -698,3 +817,4 @@ export type StoresData = ReturnType<typeof getStores>;
 export type StoreDetailData = NonNullable<ReturnType<typeof getStoreDetail>>;
 export type CustomersData = ReturnType<typeof getCustomers>;
 export type MarketingData = ReturnType<typeof getMarketing>;
+export type BudgetData = ReturnType<typeof getBudget>;

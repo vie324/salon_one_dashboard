@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Sparkline } from "@/components/charts/charts";
 import { AnimatedNumber } from "./AnimatedNumber";
+import { HelpHint } from "./HelpHint";
 import { DeltaPill } from "./primitives";
 
 export interface StatCardProps {
@@ -15,6 +16,7 @@ export interface StatCardProps {
   spark?: number[];
   sparkColor?: string;
   hint?: string;
+  help?: string;
   icon?: ReactNode;
   className?: string;
 }
@@ -29,13 +31,17 @@ export function StatCard({
   spark,
   sparkColor = "#0f766e",
   hint,
+  help,
   icon,
   className,
 }: StatCardProps) {
   return (
     <div className={cn("card card-hover flex flex-col p-5", className)}>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="flex items-center gap-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+          {label}
+          {help && <HelpHint text={help} />}
+        </span>
         {icon && <span className="text-slate-300 dark:text-slate-600">{icon}</span>}
       </div>
       <div className="mt-2 flex items-baseline gap-2">

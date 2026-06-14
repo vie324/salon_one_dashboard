@@ -1,14 +1,13 @@
 import { Building2, Store as StoreIcon, TrendingUp, Users } from "lucide-react";
-import Link from "next/link";
 import { BarsChart } from "@/components/charts/charts";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
+import { SortableTable, type Column, type Row } from "@/components/ui/SortableTable";
 import { StatCard } from "@/components/ui/StatCard";
-import { Badge, Card, CardHeader, DeltaPill } from "@/components/ui/primitives";
+import { Badge, Card, CardHeader } from "@/components/ui/primitives";
 import { getStores } from "@/lib/data";
 import { buildQuery, parseFilters } from "@/lib/filters";
-import { formatNumber, formatPercent, formatYen, formatYenCompact } from "@/lib/format";
 import type { StoreStatus } from "@/lib/types";
 
 export const metadata = { title: "店舗管理" };
@@ -29,6 +28,33 @@ export default function StoresPage({
   const data = getStores(filters);
   const qs = buildQuery(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
+
+  const cols: Column[] = [
+    { key: "name", label: "店舗", type: "entity" },
+    { key: "area", label: "エリア", type: "text" },
+    { key: "status", label: "状態", type: "badge", align: "center" },
+    { key: "revenue", label: "売上", type: "yenCompact", align: "right" },
+    { key: "operatingProfit", label: "営業利益", type: "yenCompact", align: "right", signed: true },
+    { key: "margin", label: "利益率", type: "percent", align: "right" },
+    { key: "ticket", label: "客単価", type: "yen", align: "right" },
+    { key: "revenuePerStaff", label: "人時生産性", type: "yenCompact", align: "right" },
+    { key: "growth", label: compareText, type: "delta", align: "right" },
+  ];
+  const rows: Row[] = data.rows.map((s) => ({
+    name: s.name,
+    _color: s.brandColor,
+    _href: `/stores/${s.id}${qs}`,
+    _sub: s.category,
+    area: `${s.prefecture}${s.area}`,
+    status: SSTATUS[s.status].label,
+    statusTone: SSTATUS[s.status].tone,
+    revenue: s.revenue,
+    operatingProfit: s.operatingProfit,
+    margin: s.margin,
+    ticket: s.ticket,
+    revenuePerStaff: s.revenuePerStaff,
+    growth: s.growth,
+  }));
 
   return (
     <>
@@ -56,44 +82,9 @@ export default function StoresPage({
       </ChartCard>
 
       <Card className="mt-4">
-        <CardHeader title="店舗一覧" subtitle="クリックで店舗詳細へ" />
-        <div className="mt-2 overflow-x-auto px-2 pb-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="th">店舗</th>
-                <th className="th">エリア</th>
-                <th className="th text-center">状態</th>
-                <th className="th text-right">売上</th>
-                <th className="th text-right">営業利益</th>
-                <th className="th text-right">利益率</th>
-                <th className="th text-right">客単価</th>
-                <th className="th text-right">人時生産性</th>
-                <th className="th text-right">{compareText}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((s) => (
-                <tr key={s.id} className="row-hover border-b border-slate-50 last:border-0 dark:border-slate-800/40">
-                  <td className="td">
-                    <Link href={`/stores/${s.id}${qs}`} className="flex items-center gap-2 font-medium text-slate-800 hover:text-brand-600 dark:text-slate-100">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.brandColor }} />
-                      {s.name}
-                    </Link>
-                    <span className="ml-[18px] text-xs text-slate-400">{s.category}</span>
-                  </td>
-                  <td className="td text-slate-500">{s.prefecture}{s.area}</td>
-                  <td className="td text-center"><Badge tone={SSTATUS[s.status].tone}>{SSTATUS[s.status].label}</Badge></td>
-                  <td className="td text-right tnum">{formatYenCompact(s.revenue)}</td>
-                  <td className={`td text-right tnum ${s.operatingProfit < 0 ? "text-rose-600 dark:text-rose-400" : ""}`}>{formatYenCompact(s.operatingProfit)}</td>
-                  <td className="td text-right tnum">{formatPercent(s.margin, 1)}</td>
-                  <td className="td text-right tnum">{formatYen(s.ticket)}</td>
-                  <td className="td text-right tnum">{formatYenCompact(s.revenuePerStaff)}</td>
-                  <td className="td text-right"><div className="flex justify-end"><DeltaPill value={s.growth} bare /></div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardHeader title="店舗一覧" subtitle="列ヘッダーで並べ替え・絞り込み・CSV出力" />
+        <div className="mt-1 pb-2">
+          <SortableTable columns={cols} rows={rows} defaultSort="revenue" searchable exportName="店舗別実績" />
         </div>
       </Card>
     </>

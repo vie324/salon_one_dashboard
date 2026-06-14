@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
+  getBudget,
   getCashflow,
   getCatalog,
   getCustomers,
@@ -26,6 +27,7 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   stores: getStores,
   customers: getCustomers,
   marketing: getMarketing,
+  budget: getBudget,
 };
 
 export function GET(

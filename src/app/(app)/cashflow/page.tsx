@@ -7,7 +7,7 @@ import { PrintButton } from "@/components/ui/PrintButton";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, Card, CardHeader, ProgressBar } from "@/components/ui/primitives";
 import { getCashflow } from "@/lib/data";
-import { parseFilters } from "@/lib/filters";
+import { CURRENT_YM, parseFilters } from "@/lib/filters";
 import { formatDate, formatNumber, formatPercent, formatYen, formatYenCompact, formatYm } from "@/lib/format";
 import type { SettlementStatus } from "@/lib/types";
 
@@ -67,6 +67,20 @@ export default function CashflowPage({
           />
         </ChartCard>
       </div>
+
+      <ChartCard className="mt-4" title="資金繰り予測（キャッシュ残高見込）" subtitle="直近実績＋今後6ヶ月の着地見込（点線）。直近の純キャッシュフローから自動試算" icon={<Wallet className="h-[18px] w-[18px]" />}>
+        <TrendChart
+          data={data.cashForecast}
+          height={240}
+          xFormat="month"
+          yFormat="yenCompact"
+          referenceX={CURRENT_YM}
+          series={[
+            { key: "actual", name: "実績残高", color: "#0f766e", type: "area" },
+            { key: "forecast", name: "予測残高", color: "#c0a060", type: "line", dashed: true },
+          ]}
+        />
+      </ChartCard>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
         {/* settlement schedule */}

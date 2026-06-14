@@ -4,9 +4,12 @@ import { Calendar, GitCompareArrows, Store as StoreIcon, Tag } from "lucide-reac
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   COMPARE_OPTIONS,
+  CURRENT_YM,
+  DATA_FLOOR_YM,
   PERIOD_OPTIONS,
   buildQuery,
   parseFilters,
+  shiftYm,
   type Filters,
 } from "@/lib/filters";
 
@@ -47,12 +50,28 @@ export function FilterBar({
   return (
     <div className="flex items-center gap-2">
       <Field icon={<Calendar className="h-3.5 w-3.5" />}>
-        <select className="select h-9" value={filters.period} onChange={(e) => update({ period: e.target.value as Filters["period"] })}>
+        <select
+          className="select h-9"
+          value={filters.period}
+          onChange={(e) => {
+            const v = e.target.value as Filters["period"];
+            if (v === "custom") update({ period: "custom", from: filters.from ?? shiftYm(CURRENT_YM, -2), to: filters.to ?? CURRENT_YM });
+            else update({ period: v });
+          }}
+        >
           {PERIOD_OPTIONS.map((o) => (
             <option key={o.key} value={o.key}>{o.label}</option>
           ))}
         </select>
       </Field>
+
+      {filters.period === "custom" && (
+        <div className="flex items-center gap-1">
+          <input type="month" className="input h-9" min={DATA_FLOOR_YM} max={CURRENT_YM} value={filters.from ?? shiftYm(CURRENT_YM, -2)} onChange={(e) => update({ from: e.target.value })} aria-label="開始月" />
+          <span className="text-xs text-slate-400">〜</span>
+          <input type="month" className="input h-9" min={DATA_FLOOR_YM} max={CURRENT_YM} value={filters.to ?? CURRENT_YM} onChange={(e) => update({ to: e.target.value })} aria-label="終了月" />
+        </div>
+      )}
 
       <Field icon={<Tag className="h-3.5 w-3.5" />}>
         <select className="select h-9" value={filters.brandId} onChange={(e) => update({ brandId: e.target.value })}>

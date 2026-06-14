@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, Card, CardHeader } from "@/components/ui/primitives";
+import { SortableTable, type Column, type Row } from "@/components/ui/SortableTable";
 import { getMarketing } from "@/lib/data";
 import { parseFilters } from "@/lib/filters";
 import { formatDecimal, formatNumber, formatYen, formatYenCompact, formatYm } from "@/lib/format";
@@ -32,6 +33,30 @@ export default function MarketingPage({
     value: data.rows.filter((r) => r.kind === k).reduce((s, r) => s + r.newCustomers, 0),
     color: KIND[k].color,
   })).filter((d) => d.value > 0);
+
+  const cols: Column[] = [
+    { key: "channel", label: "チャネル", type: "text" },
+    { key: "kind", label: "種別", type: "badge", align: "center" },
+    { key: "spend", label: "広告費", type: "yenCompact", align: "right", zeroDash: true },
+    { key: "newCustomers", label: "新規獲得", type: "number", align: "right" },
+    { key: "bookings", label: "予約数", type: "number", align: "right" },
+    { key: "cpa", label: "CPA", type: "yen", align: "right", zeroDash: true },
+    { key: "roas", label: "ROAS", type: "decimal", align: "right", suffix: "x", zeroDash: true },
+    { key: "ltv", label: "推定LTV", type: "yen", align: "right" },
+    { key: "revenue", label: "貢献売上", type: "yenCompact", align: "right" },
+  ];
+  const rows: Row[] = data.rows.map((r) => ({
+    channel: r.name,
+    kind: KIND[r.kind].label,
+    kindTone: KIND[r.kind].tone,
+    spend: r.spend,
+    newCustomers: r.newCustomers,
+    bookings: r.bookings,
+    cpa: r.cpa,
+    roas: r.roas,
+    ltv: r.newCustomers > 0 ? r.revenue / r.newCustomers : 0,
+    revenue: r.revenue,
+  }));
 
   return (
     <>
@@ -74,38 +99,9 @@ export default function MarketingPage({
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="チャネル別 効果" subtitle="費用対効果（CPA・ROAS）で投資判断を" icon={<Megaphone className="h-[18px] w-[18px]" />} />
-        <div className="mt-2 overflow-x-auto px-2 pb-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="th">チャネル</th>
-                <th className="th text-center">種別</th>
-                <th className="th text-right">広告費</th>
-                <th className="th text-right">新規獲得</th>
-                <th className="th text-right">予約数</th>
-                <th className="th text-right">CPA</th>
-                <th className="th text-right">ROAS</th>
-                <th className="th text-right">貢献売上</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((r) => (
-                <tr key={r.id} className="row-hover border-b border-slate-50 last:border-0 dark:border-slate-800/40">
-                  <td className="td font-medium text-slate-800 dark:text-slate-100">{r.name}</td>
-                  <td className="td text-center"><Badge tone={KIND[r.kind].tone}>{KIND[r.kind].label}</Badge></td>
-                  <td className="td text-right tnum">{r.spend > 0 ? formatYenCompact(r.spend) : "—"}</td>
-                  <td className="td text-right tnum">{formatNumber(r.newCustomers)}</td>
-                  <td className="td text-right tnum">{formatNumber(r.bookings)}</td>
-                  <td className="td text-right tnum">{r.cpa > 0 ? formatYen(r.cpa) : "—"}</td>
-                  <td className={`td text-right tnum font-semibold ${r.roas >= 5 ? "text-emerald-600 dark:text-emerald-400" : r.roas > 0 && r.roas < 2 ? "text-rose-600 dark:text-rose-400" : ""}`}>
-                    {r.roas > 0 ? `${formatDecimal(r.roas)}x` : "—"}
-                  </td>
-                  <td className="td text-right tnum">{formatYenCompact(r.revenue)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardHeader title="チャネル別 効果" subtitle="費用対効果（CPA・ROAS・LTV）。列ヘッダーで並べ替え・絞り込み・CSV出力" icon={<Megaphone className="h-[18px] w-[18px]" />} />
+        <div className="mt-1 pb-2">
+          <SortableTable columns={cols} rows={rows} defaultSort="newCustomers" searchable exportName="チャネル別効果" />
         </div>
       </Card>
     </>
