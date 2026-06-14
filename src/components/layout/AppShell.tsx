@@ -9,14 +9,17 @@ import { Sidebar } from "./Sidebar";
 import { Splash } from "./Splash";
 import { Topbar } from "./Topbar";
 import type { FilterBrand, FilterStore } from "./FilterBar";
+import type { AlertItem } from "@/lib/data";
 
 export function AppShell({
   brands,
   stores,
+  alerts,
   children,
 }: {
   brands: FilterBrand[];
   stores: FilterStore[];
+  alerts: AlertItem[];
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -71,7 +74,7 @@ export function AppShell({
 
       {/* Main column */}
       <div className={cn("transition-[padding] duration-200 print:!pl-0", collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]")}>
-        <Topbar brands={brands} stores={stores} onMenu={() => setMobileOpen(true)} />
+        <Topbar brands={brands} stores={stores} alerts={alerts} onMenu={() => setMobileOpen(true)} />
         <main className="px-4 py-6 lg:px-6 lg:py-7 print:!p-0">
           <div key={pathname} className="mx-auto max-w-[1440px] animate-fade-up">{children}</div>
         </main>

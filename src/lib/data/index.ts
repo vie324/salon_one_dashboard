@@ -274,6 +274,19 @@ function buildAlerts(f: Filters, storeRows: { id: string; name: string; revenue:
   return alerts.slice(0, 6);
 }
 
+/** Global, unfiltered alert feed for the notification centre. */
+export function getAlerts(): AlertItem[] {
+  const f: Filters = { period: "thisMonth", brandId: "all", storeId: "all", compare: "prevYear" };
+  const cur = periodMonths(f.period);
+  const prev = comparisonMonths(f);
+  const storeRows = STORES.map((s) => {
+    const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
+    const sp = aggregate(selectMonths(prev, { ...f, storeId: s.id }));
+    return { id: s.id, name: s.name, revenue: sa.revenue, operatingProfit: sa.operatingProfit, growth: safeDelta(sa.revenue, sp.revenue) };
+  });
+  return buildAlerts(f, storeRows);
+}
+
 function getTrend(f: Filters) {
   if (f.period === "thisMonth") {
     const stores = new Set(filteredStores(f).map((s) => s.id));

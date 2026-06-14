@@ -39,6 +39,14 @@ const KPI_META: Record<string, { color: string; invert?: boolean }> = {
   newCustomers: { color: "#f59e0b" },
 };
 
+const KPI_HELP: Record<string, string> = {
+  operatingProfit: "売上高から売上原価・販管費を差し引いた、本業の利益です。",
+  ticket: "売上高 ÷ 来店客数。1人あたりの平均購入額です。",
+  repeat: "来店客のうち再来（リピート）顧客の割合です。",
+  occupancy: "席数×営業日×稼働枠を基準にした、予約の埋まり具合の目安です。",
+  cancel: "予約に対するキャンセル（無断含む）の割合。低いほど良い指標です。",
+};
+
 export default function OverviewPage({
   searchParams,
 }: {
@@ -85,6 +93,7 @@ export default function OverviewPage({
               spark={k.spark}
               sparkColor={meta.color}
               hint={k.hint}
+              help={KPI_HELP[k.key]}
             />
           );
         })}
