@@ -1,9 +1,10 @@
 "use client";
 
-import { Menu, Search } from "lucide-react";
+import { Menu, Rows3, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { routeTitle } from "@/lib/nav";
 import type { AlertItem } from "@/lib/data";
+import { useUiPrefs } from "@/components/providers/UiPrefs";
 import { Avatar } from "./Logo";
 import { FilterBar, type FilterBrand, type FilterStore } from "./FilterBar";
 import { NotificationCenter } from "./NotificationCenter";
@@ -22,6 +23,7 @@ export function Topbar({
 }) {
   const pathname = usePathname();
   const title = routeTitle(pathname);
+  const { density, setDensity } = useUiPrefs();
 
   return (
     <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur-md dark:bg-slate-950/80 print:hidden">
@@ -46,6 +48,14 @@ export function Topbar({
             <Search className="h-4 w-4" />
             <span className="hidden lg:inline">検索・移動</span>
             <kbd className="rounded border border-slate-200 px-1 text-[10px] dark:border-slate-700">⌘K</kbd>
+          </button>
+          <button
+            onClick={() => setDensity(density === "compact" ? "comfortable" : "compact")}
+            className="btn btn-ghost btn-icon hidden sm:flex"
+            aria-label="表示密度"
+            title={density === "compact" ? "標準表示に切替" : "コンパクト表示に切替"}
+          >
+            <Rows3 className="h-[18px] w-[18px]" />
           </button>
           <ThemeToggle />
           <NotificationCenter alerts={alerts} />

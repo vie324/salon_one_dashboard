@@ -223,3 +223,14 @@ html {
     transform: scaleX(1);
   }
 }
+
+/* Compact density — denser tables / cards */
+.compact .td,
+.compact .th {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+.compact .card.flex.flex-col > .px-5,
+.compact .p-5 {
+  padding: 1rem;
+}

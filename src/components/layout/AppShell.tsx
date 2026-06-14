@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { UiPrefsProvider } from "@/components/providers/UiPrefs";
 import { CommandPalette } from "./CommandPalette";
 import { Sidebar } from "./Sidebar";
 import { Splash } from "./Splash";
@@ -47,6 +48,7 @@ export function AppShell({
   }
 
   return (
+    <UiPrefsProvider>
     <div className="min-h-screen">
       {/* Desktop sidebar */}
       <aside
@@ -83,5 +85,6 @@ export function AppShell({
       <Splash />
       <CommandPalette />
     </div>
+    </UiPrefsProvider>
   );
 }
