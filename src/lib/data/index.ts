@@ -649,13 +649,73 @@ export function getStoreDetail(storeId: string, f: Filters) {
   const trend = monthlyAggs(t12, sf).map(({ ym, agg }) => ({ label: ym, revenue: Math.round(agg.revenue), operatingProfit: Math.round(agg.operatingProfit) }));
   const staff = STAFF_PERF.filter((x) => x.storeId === storeId).map((x) => ({ ...x, designationRate: x.customers ? x.designations / x.customers : 0 })).sort((x, y) => y.sales - x.sales);
   const brand = brandById(s.brandId)!;
+
+  // investment payback (出店・設備投資ROI)
+  const monthlyProfit = a.operatingProfit / Math.max(1, cur.length);
+  const initialInvestment = s.seats * 2_600_000; // 内装＋設備の概算
+  const monthsOpen = (2026 - s.openedYear) * 12 + 6;
+  const investment = {
+    initialInvestment,
+    monthlyProfit,
+    paybackMonths: monthlyProfit > 0 ? initialInvestment / monthlyProfit : 0,
+    annualRoi: initialInvestment ? (monthlyProfit * 12) / initialInvestment : 0,
+    recoveryRate: initialInvestment ? Math.min(1.5, (monthsOpen * monthlyProfit) / initialInvestment) : 0,
+    monthsOpen,
+  };
+
   return {
     store: { ...s, brandName: brand.name, brandColor: brand.color, category: CATEGORY_LABEL[brand.category] },
     agg: a,
     deltas: { revenue: safeDelta(a.revenue, p.revenue), profit: safeDelta(a.operatingProfit, p.operatingProfit), customers: safeDelta(a.customers, p.customers) },
     pl: buildPL(a, p),
-    trend, staff,
+    trend, staff, investment,
     paymentMix: paymentSplit(selectMonths(cur, sf)).sort((x, y) => y.amount - x.amount),
+  };
+}
+
+// ============================================================
+// Labour productivity & staffing (人時生産性・シフト)
+// ============================================================
+
+export function getLabor(f: Filters) {
+  const cur = periodMonths(f);
+  const months = cur.length;
+  const stores = filteredStores(f);
+  const a = aggregate(selectMonths(cur, f));
+
+  const rows = stores.map((s) => {
+    const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
+    const laborHours = s.staff * 160 * months;
+    const productivity = laborHours ? sa.revenue / laborHours : 0;
+    const recommendedStaff = Math.max(3, Math.round(sa.customers / months / 85));
+    return {
+      id: s.id,
+      name: s.name,
+      brandColor: brandById(s.brandId)!.color,
+      staff: s.staff,
+      productivity,
+      laborShare: sa.grossProfit ? sa.cost.labor / sa.grossProfit : 0,
+      laborCostRatio: sa.revenue ? sa.cost.labor / sa.revenue : 0,
+      recommendedStaff,
+      gap: s.staff - recommendedStaff,
+    };
+  }).sort((x, y) => y.productivity - x.productivity);
+
+  const staffTotal = stores.reduce((s, st) => s + st.staff, 0);
+  const totalHours = staffTotal * 160 * months;
+  const commissionRate = 0.05;
+
+  return {
+    summary: {
+      productivity: totalHours ? a.revenue / totalHours : 0,
+      laborShare: a.grossProfit ? a.cost.labor / a.grossProfit : 0,
+      laborCostRatio: a.revenue ? a.cost.labor / a.revenue : 0,
+      commissionTotal: a.tech * commissionRate,
+      laborCost: a.cost.labor,
+      staffTotal,
+    },
+    rows,
+    heatmap: buildHeatmap(f),
   };
 }
 
@@ -927,6 +987,7 @@ export function getCancellations(f: Filters) {
 export type CatalogData = ReturnType<typeof getCatalog>;
 export type InventoryData = ReturnType<typeof getInventory>;
 export type CancellationsData = ReturnType<typeof getCancellations>;
+export type LaborData = ReturnType<typeof getLabor>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;

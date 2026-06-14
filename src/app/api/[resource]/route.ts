@@ -7,6 +7,7 @@ import {
   getCustomers,
   getFinancials,
   getInventory,
+  getLabor,
   getMarketing,
   getOverview,
   getReconciliation,
@@ -32,6 +33,7 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   budget: getBudget,
   inventory: getInventory,
   cancellations: getCancellations,
+  labor: getLabor,
 };
 
 export function GET(
