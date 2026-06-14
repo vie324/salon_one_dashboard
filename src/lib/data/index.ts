@@ -173,7 +173,7 @@ export function getCatalog() {
 // ============================================================
 
 export function getOverview(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -277,7 +277,7 @@ function buildAlerts(f: Filters, storeRows: { id: string; name: string; revenue:
 /** Global, unfiltered alert feed for the notification centre. */
 export function getAlerts(): AlertItem[] {
   const f: Filters = { period: "thisMonth", brandId: "all", storeId: "all", compare: "prevYear" };
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const storeRows = STORES.map((s) => {
     const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
@@ -299,8 +299,13 @@ function getTrend(f: Filters) {
     const points = Object.keys(byDate).sort().map((date) => ({ label: date, value: Math.round(byDate[date].revenue), forecast: byDate[date].isFuture ? Math.round(byDate[date].revenue) : null, actual: byDate[date].isFuture ? null : Math.round(byDate[date].revenue) }));
     return { granularity: "daily" as const, points };
   }
-  const yms = f.period === "lastMonth" ? ymRange(shiftYm(CURRENT_YM, -6), shiftYm(CURRENT_YM, -1)) : periodMonths(f.period);
-  const points = monthlyAggs(yms, f).map(({ ym, agg }) => ({ label: ym, value: Math.round(agg.revenue), profit: Math.round(agg.operatingProfit) }));
+  const yms = f.period === "lastMonth" ? ymRange(shiftYm(CURRENT_YM, -6), shiftYm(CURRENT_YM, -1)) : periodMonths(f);
+  const points = monthlyAggs(yms, f).map(({ ym, agg }) => ({
+    label: ym,
+    value: Math.round(agg.revenue),
+    profit: Math.round(agg.operatingProfit),
+    prev: Math.round(aggregate(selectMonths([shiftYm(ym, -12)], f)).revenue),
+  }));
   return { granularity: "monthly" as const, points };
 }
 
@@ -309,7 +314,7 @@ function getTrend(f: Filters) {
 // ============================================================
 
 export function getSales(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -413,7 +418,7 @@ function buildHeatmap(f: Filters) {
 // ============================================================
 
 export function getCashflow(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const split = paymentSplit(selectMonths(cur, f)).sort((x, y) => y.amount - x.amount);
 
@@ -522,7 +527,7 @@ export function getReconciliation(f: Filters) {
 // ============================================================
 
 export function getFinancials(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -604,7 +609,7 @@ function buildPL(a: Agg, p: Agg): PLLine[] {
 // ============================================================
 
 export function getStores(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const rows = filteredStores(f).map((s) => {
     const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
@@ -634,7 +639,7 @@ export function getStoreDetail(storeId: string, f: Filters) {
   const s = storeById(storeId);
   if (!s) return null;
   const sf = { ...f, brandId: "all", storeId };
-  const cur = periodMonths(sf.period);
+  const cur = periodMonths(sf);
   const prev = comparisonMonths(sf);
   const a = aggregate(selectMonths(cur, sf));
   const p = aggregate(selectMonths(prev, sf));
@@ -657,7 +662,7 @@ export function getStoreDetail(storeId: string, f: Filters) {
 // ============================================================
 
 export function getCustomers(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
@@ -715,7 +720,7 @@ export function getCustomers(f: Filters) {
 // ============================================================
 
 export function getMarketing(f: Filters) {
-  const cur = new Set(periodMonths(f.period));
+  const cur = new Set(periodMonths(f));
   // channel performance aggregated over the period (company-level data)
   const rows = CHANNELS.map((ch) => {
     const cm = CHANNEL_MONTHS.filter((c) => c.channelId === ch.id && cur.has(c.ym));
@@ -756,7 +761,7 @@ function metricVals(a: Agg) {
 }
 
 export function getBudget(f: Filters) {
-  const cur = periodMonths(f.period);
+  const cur = periodMonths(f);
   const prev = comparisonMonths(f);
   const day = Number(TODAY.split("-")[2]);
   const [cy, cm] = CURRENT_YM.split("-").map(Number);

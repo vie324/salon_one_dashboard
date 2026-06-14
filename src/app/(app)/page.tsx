@@ -125,6 +125,7 @@ export default function OverviewPage({
               xFormat="month"
               series={[
                 { key: "value", name: "売上", color: "#0f766e", type: "area" },
+                { key: "prev", name: "前年売上", color: "#94a3b8", type: "line", dashed: true },
                 { key: "profit", name: "営業利益", color: "#14b8a6", type: "line" },
               ]}
             />

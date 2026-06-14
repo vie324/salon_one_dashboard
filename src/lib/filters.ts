@@ -4,6 +4,8 @@
 
 export const TODAY = "2026-06-13";
 export const CURRENT_YM = "2026-06";
+/** Oldest month with data (used to clamp custom ranges). */
+export const DATA_FLOOR_YM = "2024-06";
 
 export type PeriodKey =
   | "thisMonth"
@@ -11,7 +13,8 @@ export type PeriodKey =
   | "last3m"
   | "last6m"
   | "last12m"
-  | "thisFY";
+  | "thisFY"
+  | "custom";
 
 export type CompareKey = "prevYear" | "prevPeriod";
 
@@ -20,6 +23,8 @@ export interface Filters {
   brandId: string; // "all" | brand id
   storeId: string; // "all" | store id
   compare: CompareKey;
+  from?: string; // "YYYY-MM" (custom period)
+  to?: string; // "YYYY-MM" (custom period)
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -36,6 +41,7 @@ export const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "last6m", label: "直近6ヶ月" },
   { key: "last12m", label: "直近12ヶ月" },
   { key: "thisFY", label: "今期 (4月〜)" },
+  { key: "custom", label: "任意期間" },
 ];
 
 export const COMPARE_OPTIONS: { key: CompareKey; label: string }[] = [
@@ -67,9 +73,11 @@ export function ymRange(startYm: string, endYm: string): string[] {
   return out;
 }
 
-/** Number of months a period spans, anchored at CURRENT_YM. */
-export function periodMonths(key: PeriodKey): string[] {
-  switch (key) {
+const isYm = (s?: string): s is string => !!s && /^\d{4}-\d{2}$/.test(s);
+
+/** Months covered by the active period (anchored at CURRENT_YM). */
+export function periodMonths(f: Filters): string[] {
+  switch (f.period) {
     case "thisMonth":
       return [CURRENT_YM];
     case "lastMonth":
@@ -81,17 +89,24 @@ export function periodMonths(key: PeriodKey): string[] {
     case "last12m":
       return ymRange(shiftYm(CURRENT_YM, -11), CURRENT_YM);
     case "thisFY": {
-      // Japanese FY starts in April.
       const [y, m] = CURRENT_YM.split("-").map(Number);
       const fyStartYear = m >= 4 ? y : y - 1;
       return ymRange(`${fyStartYear}-04`, CURRENT_YM);
+    }
+    case "custom": {
+      let from = isYm(f.from) ? f.from : shiftYm(CURRENT_YM, -2);
+      let to = isYm(f.to) ? f.to : CURRENT_YM;
+      if (from > to) [from, to] = [to, from];
+      if (from < DATA_FLOOR_YM) from = DATA_FLOOR_YM;
+      if (to > CURRENT_YM) to = CURRENT_YM;
+      return ymRange(from, to);
     }
   }
 }
 
 /** Months for the comparison window, aligned with the current period. */
 export function comparisonMonths(filters: Filters): string[] {
-  const cur = periodMonths(filters.period);
+  const cur = periodMonths(filters);
   const offset = filters.compare === "prevYear" ? -12 : -cur.length;
   return cur.map((ym) => shiftYm(ym, offset));
 }
@@ -121,6 +136,8 @@ export function parseFilters(
     compare: COMPARE_OPTIONS.some((c) => c.key === compare)
       ? compare
       : DEFAULT_FILTERS.compare,
+    from: validPeriod === "custom" ? get("from") : undefined,
+    to: validPeriod === "custom" ? get("to") : undefined,
   };
 }
 
@@ -131,6 +148,10 @@ export function buildQuery(f: Partial<Filters>): string {
   if (f.storeId && f.storeId !== "all") sp.set("store", f.storeId);
   if (f.compare && f.compare !== DEFAULT_FILTERS.compare)
     sp.set("compare", f.compare);
+  if (f.period === "custom") {
+    if (isYm(f.from)) sp.set("from", f.from);
+    if (isYm(f.to)) sp.set("to", f.to);
+  }
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
