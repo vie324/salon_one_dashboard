@@ -768,7 +768,17 @@ export function getMarketing(f: Filters) {
     ],
   };
 
-  return { rows, totals, blendedCpa, blendedRoas, trend, reviews };
+  // LINE official account / CRM effectiveness
+  const line = {
+    friends: 18420,
+    monthlyBroadcast: 6,
+    openRate: 0.62,
+    clickRate: 0.14,
+    visitsDriven: 540,
+    blockRate: 0.018,
+  };
+
+  return { rows, totals, blendedCpa, blendedRoas, trend, reviews, line };
 }
 
 // ============================================================

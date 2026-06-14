@@ -1,4 +1,4 @@
-import { Megaphone, Star, Target, TrendingUp, UserPlus } from "lucide-react";
+import { Megaphone, MessageCircle, Star, Target, TrendingUp, UserPlus } from "lucide-react";
 import { BarsChart, DonutChart } from "@/components/charts/charts";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -140,6 +140,17 @@ export default function MarketingPage({
           <BarsChart data={data.reviews.distribution.map((d) => ({ label: `★${d.star}`, count: d.count }))} height={230} yFormat="count" series={[{ key: "count", name: "件数", color: "#c0a060" }]} />
         </ChartCard>
       </div>
+
+      <ChartCard className="mt-4" title="LINE公式・CRM" subtitle="友だち基盤と配信効果" icon={<MessageCircle className="h-[18px] w-[18px]" />}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <ReviewStat label="友だち数" value={`${formatNumber(data.line.friends)}人`} />
+          <ReviewStat label="月間配信" value={`${data.line.monthlyBroadcast}回`} />
+          <ReviewStat label="開封率" value={formatPercent(data.line.openRate, 0)} />
+          <ReviewStat label="クリック率" value={formatPercent(data.line.clickRate, 0)} />
+          <ReviewStat label="来店誘導" value={`${formatNumber(data.line.visitsDriven)}件`} />
+          <ReviewStat label="ブロック率" value={formatPercent(data.line.blockRate, 1)} />
+        </div>
+      </ChartCard>
 
       <Card className="mt-4">
         <CardHeader title="チャネル別 効果" subtitle="費用対効果（CPA・ROAS・LTV）。列ヘッダーで並べ替え・絞り込み・CSV出力" icon={<Megaphone className="h-[18px] w-[18px]" />} />
