@@ -18,6 +18,7 @@ import {
 } from "@/lib/filters";
 import {
   BRANDS,
+  CATEGORY_PROFILE,
   CHANNELS,
   PAYMENT_MIX,
   PROCESSORS,
@@ -300,17 +301,24 @@ export function getSales(f: Filters) {
   const a = aggregate(selectMonths(cur, f));
   const p = aggregate(selectMonths(prev, f));
 
-  // menu mix — derive from brand categories in scope
+  // menu mix (with gross margin) — derive from brand categories in scope
   const menuTotals: Record<string, number> = {};
+  const menuCost: Record<string, number> = {};
   for (const m of selectMonths(cur, f)) {
     const brand = brandById(m.brandId)!;
-    const groups = (MENU_WEIGHTS[brand.category] ?? []);
+    const groups = MENU_WEIGHTS[brand.category] ?? [];
     const techPlusProduct = m.revenueTech + m.revenueProduct;
+    const cogs = CATEGORY_PROFILE[brand.category].cogsRatio;
     for (const g of groups) {
-      menuTotals[g.label] = (menuTotals[g.label] ?? 0) + techPlusProduct * g.weight;
+      const amt = techPlusProduct * g.weight;
+      menuTotals[g.label] = (menuTotals[g.label] ?? 0) + amt;
+      menuCost[g.label] = (menuCost[g.label] ?? 0) + amt * cogs;
     }
   }
-  const menuMix = Object.entries(menuTotals).map(([label, amount]) => ({ label, amount })).sort((x, y) => y.amount - x.amount).slice(0, 8);
+  const menuMix = Object.entries(menuTotals)
+    .map(([label, amount]) => ({ label, amount, grossProfit: amount - (menuCost[label] ?? 0), marginRate: amount ? 1 - (menuCost[label] ?? 0) / amount : 0 }))
+    .sort((x, y) => y.amount - x.amount)
+    .slice(0, 8);
 
   // staff ranking
   const staff = STAFF_PERF.filter((s) => (f.brandId === "all" || s.brandId === f.brandId) && (f.storeId === "all" || s.storeId === f.storeId))
