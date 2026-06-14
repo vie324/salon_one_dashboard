@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Landmark,
   Megaphone,
+  Package,
   Scale,
   Settings,
   Store,
@@ -33,8 +34,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -70,6 +71,12 @@ export const NAV: NavGroup[] = [
       { href: "/cashflow", label: "資金繰り", icon: Wallet, desc: "現金・決済別入金・前受金" },
       { href: "/reconciliation", label: "入金・突合", icon: Scale, desc: "売上と入金の差異管理" },
       { href: "/financials", label: "財務・PL", icon: Landmark, desc: "損益計算書・損益分岐点" },
+    ],
+  },
+  {
+    label: "運営",
+    items: [
+      { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
     ],
   },
   {

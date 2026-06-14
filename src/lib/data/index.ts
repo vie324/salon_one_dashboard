@@ -29,6 +29,7 @@ import {
 } from "./catalog";
 import {
   CHANNEL_MONTHS,
+  INVENTORY,
   PREPAID_MONTHS,
   RECON_ITEMS,
   SETTLEMENTS,
@@ -39,6 +40,7 @@ import {
   opexOf,
   revenueOf,
 } from "./generate";
+import { randFloat, rngFor } from "./random";
 import {
   CATEGORY_LABEL,
   PAYMENT_LABEL,
@@ -805,9 +807,50 @@ export function getBudget(f: Filters) {
   };
 }
 
+// ============================================================
+// Inventory & ordering (在庫・発注)
+// ============================================================
+
+export function getInventory(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, f));
+  const items = INVENTORY.map((it) => {
+    const value = it.stock * it.unitCost;
+    const coverDays = it.monthlyUsage > 0 ? Math.round((it.stock / it.monthlyUsage) * 30) : 999;
+    const status: "out" | "low" | "ok" = it.stock <= it.reorderPoint * 0.5 ? "out" : it.stock <= it.reorderPoint ? "low" : "ok";
+    const variance = Math.round(value * randFloat(rngFor("inv", it.id), -0.04, 0.01)); // 棚卸差異（多くは減耗）
+    const suggestedOrder = it.stock <= it.reorderPoint ? Math.max(0, it.reorderPoint * 2 - it.stock) : 0;
+    return { ...it, value, coverDays, status, needsReorder: it.stock <= it.reorderPoint, variance, suggestedOrder };
+  });
+  const reorderAlerts = items.filter((i) => i.needsReorder).sort((x, y) => x.coverDays - y.coverDays);
+  const totalValue = items.reduce((s, i) => s + i.value, 0);
+  const materialValue = items.filter((i) => i.type === "材料").reduce((s, i) => s + i.value, 0);
+  const retailValue = totalValue - materialValue;
+  const varianceTotal = items.reduce((s, i) => s + i.variance, 0);
+  return {
+    summary: {
+      totalValue,
+      materialValue,
+      retailValue,
+      reorderCount: reorderAlerts.length,
+      cogs: a.cogs,
+      cogsRatio: a.revenue ? a.cogs / a.revenue : 0,
+      varianceTotal,
+      lossRate: totalValue ? Math.abs(varianceTotal) / totalValue : 0,
+    },
+    items,
+    reorderAlerts,
+    byType: [
+      { name: "材料", value: materialValue, color: "#0f766e" },
+      { name: "店販", value: retailValue, color: "#c0a060" },
+    ],
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
+export type InventoryData = ReturnType<typeof getInventory>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;
