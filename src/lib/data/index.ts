@@ -1036,6 +1036,273 @@ export function getFranchise(f: Filters) {
   };
 }
 
+// ============================================================
+// Courses / 役務（前受金）— esthetic course contracts
+// ============================================================
+
+export function getCourses(f: Filters) {
+  void f;
+  const courseNames = ["脱毛 全身コース", "フェイシャル 半年", "痩身 集中コース", "脱毛 VIO", "ブライダルエステ", "美白フェイシャル", "ハイフ 痩身"];
+  const stores = ["Esthé Blanc 表参道店", "Esthé Blanc 神戸三宮店"];
+  const shinpanCos = ["オリコ", "ジャックス", "セディナ"];
+  const surnames = ["佐藤", "鈴木", "高橋", "田中", "渡辺", "伊藤", "山本", "中村", "小林", "加藤", "吉田", "山田", "松本", "井上", "木村"];
+  const sessionsOpts = [6, 8, 10, 12, 18, 24];
+  const perSessionOpts = [9000, 12000, 18000, 25000];
+
+  const contracts = Array.from({ length: 30 }, (_, i) => {
+    const r = rngFor("course", i);
+    const sessions = sessionsOpts[Math.floor(r() * sessionsOpts.length)];
+    const contractAmount = sessions * perSessionOpts[Math.floor(r() * perSessionOpts.length)];
+    const pay = (["一括", "信販", "都度"] as const)[Math.floor(r() * 3)];
+    const monthsAgo = Math.floor(r() * 14);
+    const signedDate = `${shiftYm(CURRENT_YM, -monthsAgo)}-15`;
+    const expiryDate = `${shiftYm(CURRENT_YM, -monthsAgo + 12)}-15`;
+    const progress = Math.min(1, (monthsAgo / 10) * randFloat(rngFor("cu", i), 0.7, 1.2));
+    const used = Math.min(sessions, Math.round(sessions * progress));
+    const roll = r();
+    let status: "進行中" | "完了" | "解約" | "失効";
+    let refund = 0;
+    let penalty = 0;
+    let coolingOff = false;
+    if (used >= sessions) {
+      status = "完了";
+    } else if (roll < 0.1) {
+      status = "解約";
+      refund = Math.round(contractAmount * (1 - used / sessions) * 0.9);
+      penalty = Math.round(contractAmount * 0.1);
+      if (monthsAgo === 0) {
+        coolingOff = true;
+        refund = contractAmount;
+        penalty = 0;
+      }
+    } else if (expiryDate < TODAY) {
+      status = "失効";
+    } else {
+      status = "進行中";
+    }
+    const remaining = status === "進行中" ? Math.round(contractAmount * (1 - used / sessions)) : 0;
+    return {
+      id: `ct-${i}`,
+      customer: `${surnames[Math.floor(r() * surnames.length)]} 様`,
+      masked: `•••• ${1000 + Math.floor(r() * 8999)}`,
+      store: stores[Math.floor(r() * stores.length)],
+      course: courseNames[Math.floor(r() * courseNames.length)],
+      sessions,
+      used,
+      contractAmount,
+      remaining,
+      paymentType: pay,
+      shinpan: pay === "信販" ? shinpanCos[Math.floor(r() * shinpanCos.length)] : "",
+      signedDate,
+      expiryDate,
+      status,
+      refund,
+      penalty,
+      coolingOff,
+      consumption: used / sessions,
+    };
+  });
+
+  const active = contracts.filter((c) => c.status === "進行中");
+  const cancels = contracts.filter((c) => c.status === "解約");
+  const prepaidBalance = active.reduce((s, c) => s + c.remaining, 0);
+
+  const statusColors: Record<string, string> = { 進行中: "#0f766e", 完了: "#0ea5e9", 解約: "#f43f5e", 失効: "#c0a060" };
+  const byStatus = (["進行中", "完了", "解約", "失効"] as const).map((st) => ({ name: st, value: contracts.filter((c) => c.status === st).length, color: statusColors[st] }));
+  const payColors: Record<string, string> = { 一括: "#0f766e", 信販: "#c0a060", 都度: "#0ea5e9" };
+  const byPayment = (["一括", "信販", "都度"] as const).map((p) => ({ name: p, value: active.filter((c) => c.paymentType === p).reduce((s, c) => s + c.remaining, 0), color: payColors[p] }));
+  const shinpanByCompany = shinpanCos.map((co) => ({ name: co, balance: active.filter((c) => c.shinpan === co).reduce((s, c) => s + c.remaining, 0) })).filter((x) => x.balance > 0);
+
+  // consumption projection (役務残高の消化見込)
+  const projection: { label: string; balance: number }[] = [];
+  let bal = prepaidBalance;
+  for (let i = 0; i < 6; i++) {
+    projection.push({ label: shiftYm(CURRENT_YM, i), balance: Math.round(bal) });
+    bal *= 0.86;
+  }
+
+  return {
+    summary: {
+      prepaidBalance,
+      activeCount: active.length,
+      consumedThisMonth: Math.round(prepaidBalance * 0.07),
+      cancelCount: cancels.length,
+      refundTotal: cancels.reduce((s, c) => s + c.refund, 0),
+      coolingOffCount: contracts.filter((c) => c.coolingOff).length,
+      shinpanBalance: active.filter((c) => c.paymentType === "信販").reduce((s, c) => s + c.remaining, 0),
+      avgConsumption: contracts.length ? contracts.reduce((s, c) => s + c.consumption, 0) / contracts.length : 0,
+      totalContract: contracts.reduce((s, c) => s + c.contractAmount, 0),
+    },
+    contracts,
+    byStatus,
+    byPayment,
+    shinpanByCompany,
+    projection,
+  };
+}
+
+// ============================================================
+// 整体院: 保険診療・療養費 (insurance reimbursement)
+// ============================================================
+
+export function getInsurance(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, { ...f, brandId: "karada", storeId: "all" }));
+  const totalRev = a.revenue || 8_000_000 * cur.length;
+  const insuranceRatio = 0.62;
+  const insuranceRev = Math.round(totalRev * insuranceRatio);
+  const jihiRev = totalRev - insuranceRev;
+  const billed = insuranceRev;
+  const paid = Math.round(billed * 0.74); // 受領委任払い（2〜3ヶ月遅れ）
+  const pending = billed - paid;
+  const returned = Math.round(billed * 0.04); // 返戻
+  const assessed = Math.round(billed * 0.02); // 査定減額
+  const aging = [
+    { name: "1ヶ月以内", value: Math.round(pending * 0.5), color: "#0f766e" },
+    { name: "2ヶ月", value: Math.round(pending * 0.3), color: "#c0a060" },
+    { name: "3ヶ月以上", value: Math.round(pending * 0.2), color: "#f43f5e" },
+  ];
+  const t12 = trailing12(f);
+  const trend = monthlyAggs(t12, { ...f, brandId: "karada", storeId: "all" }).map(({ ym, agg }) => ({
+    label: ym,
+    insurance: Math.round((agg.revenue || totalRev) * insuranceRatio),
+    jihi: Math.round((agg.revenue || totalRev) * (1 - insuranceRatio)),
+  }));
+  const insurers = ["協会けんぽ", "国民健康保険", "後期高齢者", "組合健保"];
+  const statuses = ["請求中", "入金済", "返戻", "査定"];
+  const claims = Array.from({ length: 10 }, (_, i) => {
+    const r = rngFor("ins", i);
+    const amount = Math.round(randFloat(r, 28000, 160000));
+    const st = i < 6 ? "入金済" : i < 8 ? "請求中" : i === 8 ? "返戻" : "査定";
+    return {
+      id: `ins-${i}`,
+      insurer: insurers[Math.floor(r() * insurers.length)],
+      patient: `患者 ${String.fromCharCode(65 + i)}`,
+      masked: `•••• ${1000 + Math.floor(r() * 8999)}`,
+      parts: 1 + Math.floor(r() * 3),
+      amount,
+      date: `${shiftYm(CURRENT_YM, -Math.floor(r() * 3))}-${String(5 + Math.floor(r() * 20)).padStart(2, "0")}`,
+      status: st,
+    };
+  });
+  return {
+    summary: { insuranceRev, jihiRev, insuranceRatio, billed, paid, pending, returned, assessed, jihiConversion: 0.28 },
+    trend, aging, claims,
+  };
+}
+
+// ============================================================
+// ヘア: スタイリスト・歩合・面貸し (stylist commission)
+// ============================================================
+
+export function getStylists(f: Filters) {
+  void f;
+  const base = STAFF_PERF.filter((s) => s.brandId === "lumiere").sort((a, b) => b.sales - a.sales);
+  const n = base.length;
+  function rankOf(i: number): { rank: string; rate: number } {
+    const p = i / Math.max(1, n);
+    if (p < 0.15) return { rank: "ディレクター", rate: 0.5 };
+    if (p < 0.45) return { rank: "トップスタイリスト", rate: 0.45 };
+    if (p < 0.78) return { rank: "スタイリスト", rate: 0.35 };
+    return { rank: "ジュニア", rate: 0.1 };
+  }
+  const rows = base.map((s, i) => {
+    const { rank, rate } = rankOf(i);
+    return {
+      id: s.id,
+      name: s.name,
+      store: storeById(s.storeId)!.name,
+      rank,
+      sales: s.sales,
+      designationRate: s.customers ? s.designations / s.customers : 0,
+      commissionRate: rate,
+      commission: Math.round(s.sales * rate),
+    };
+  });
+  const ranks = ["ディレクター", "トップスタイリスト", "スタイリスト", "ジュニア"];
+  const rankColors: Record<string, string> = { ディレクター: "#0f766e", トップスタイリスト: "#0ea5e9", スタイリスト: "#c0a060", ジュニア: "#94a3b8" };
+  const rankDist = ranks.map((rk) => ({ name: rk, value: rows.filter((r) => r.rank === rk).length, color: rankColors[rk] }));
+  const totalSales = rows.reduce((s, r) => s + r.sales, 0);
+  const commissionTotal = rows.reduce((s, r) => s + r.commission, 0);
+  const designationAvg = rows.length ? rows.reduce((s, r) => s + r.designationRate, 0) / rows.length : 0;
+  // 面貸し・業務委託（フリーランス美容師）
+  const freelance = { count: 6, revenue: 7_800_000, chairFee: 1_560_000, payout: 6_240_000 };
+  return {
+    summary: { totalSales, commissionTotal, designationAvg, stylistCount: rows.length, drugCostRatio: 0.1 },
+    rows, rankDist, freelance,
+  };
+}
+
+// ============================================================
+// ネイル・アイラッシュ: 定額制・回転率 (membership / utilisation)
+// ============================================================
+
+export function getMembership(f: Filters) {
+  const sub = SUBSCRIPTION_MONTHS[SUBSCRIPTION_MONTHS.length - 1];
+  const members = Math.round(sub.members * 0.55);
+  const plans = [
+    { name: "ネイル 通い放題", price: 9800, members: Math.round(members * 0.4) },
+    { name: "ネイル 月2回", price: 6800, members: Math.round(members * 0.25) },
+    { name: "まつげ 定額（付け替え）", price: 7800, members: Math.round(members * 0.25) },
+    { name: "まつげ リペア定額", price: 4800, members: Math.round(members * 0.1) },
+  ];
+  const mrr = plans.reduce((s, p) => s + p.price * p.members, 0);
+  const t12 = trailing12(f);
+  void t12;
+  const memberTrend = SUBSCRIPTION_MONTHS.slice(-12).map((s) => ({ label: s.ym, members: Math.round(s.members * 0.55) }));
+  return {
+    summary: {
+      members,
+      mrr,
+      retentionRate: 0.91,
+      avgVisitsPerMonth: 1.8,
+      turnoverPerDay: 9.4, // 1日あたり回転数
+      avgServiceMinutes: 78,
+      seatOccupancy: 0.82,
+      repeatRatio: 0.72, // アイラッシュ: 付け替えに対するリペア比率
+    },
+    plans: plans.map((p) => ({ ...p, mrr: p.price * p.members })),
+    memberTrend,
+  };
+}
+
+// ============================================================
+// リラク: 資格区分・委託 (qualification / outsourcing)
+// ============================================================
+
+export function getRelax(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, { ...f, brandId: "reposer", storeId: "all" }));
+  const totalRev = a.revenue || 6_000_000 * cur.length;
+  const licensedRatio = 0.38; // 国家資格（あん摩マッサージ指圧）施術の割合
+  const licensedRev = Math.round(totalRev * licensedRatio);
+  const unlicensedRev = totalRev - licensedRev;
+  const courses = [
+    { name: "60分 もみほぐし", minutes: 60, price: 5500, share: 0.4 },
+    { name: "90分 ボディ", minutes: 90, price: 8200, share: 0.32 },
+    { name: "120分 全身", minutes: 120, price: 10800, share: 0.18 },
+    { name: "リフレ 40分", minutes: 40, price: 4000, share: 0.1 },
+  ].map((c) => ({ ...c, revenue: Math.round(totalRev * c.share), unitPerHour: Math.round((c.price / c.minutes) * 60) }));
+  const employment = { directRevenue: Math.round(totalRev * 0.55), outsourcedRevenue: Math.round(totalRev * 0.45), outsourcedCount: 8, payoutRate: 0.55 };
+  return {
+    summary: {
+      totalRev,
+      licensedRev,
+      unlicensedRev,
+      licensedRatio,
+      ticketBalance: 4_300_000, // 回数券残高（前受金）
+      outsourcedRevenue: employment.outsourcedRevenue,
+      payout: Math.round(employment.outsourcedRevenue * employment.payoutRate),
+    },
+    courses,
+    employment,
+    qualSplit: [
+      { name: "国家資格", value: licensedRev, color: "#0f766e" },
+      { name: "資格外（リラク）", value: unlicensedRev, color: "#c0a060" },
+    ],
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
@@ -1044,6 +1311,11 @@ export type CancellationsData = ReturnType<typeof getCancellations>;
 export type LaborData = ReturnType<typeof getLabor>;
 export type FundingData = ReturnType<typeof getFunding>;
 export type FranchiseData = ReturnType<typeof getFranchise>;
+export type CoursesData = ReturnType<typeof getCourses>;
+export type InsuranceData = ReturnType<typeof getInsurance>;
+export type StylistsData = ReturnType<typeof getStylists>;
+export type MembershipData = ReturnType<typeof getMembership>;
+export type RelaxData = ReturnType<typeof getRelax>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;
