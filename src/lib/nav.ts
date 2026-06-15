@@ -2,6 +2,7 @@ import {
   BarChart3,
   Banknote,
   CalendarX,
+  ClipboardList,
   Clock,
   FileText,
   LayoutDashboard,
@@ -38,8 +39,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise", "/courses"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise", "/courses"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -84,6 +85,7 @@ export const NAV: NavGroup[] = [
       { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
       { href: "/cancellations", label: "キャンセル料", icon: CalendarX, desc: "無断/直前キャンセルの請求・回収・常習者" },
       { href: "/labor", label: "人時生産性・シフト", icon: Clock, desc: "生産性・適正人員・需要予測・歩合" },
+      { href: "/courses", label: "役務・コース管理", icon: ClipboardList, desc: "エステの前受金・契約消化・解約・信販" },
     ],
   },
   {

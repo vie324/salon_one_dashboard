@@ -1036,6 +1036,111 @@ export function getFranchise(f: Filters) {
   };
 }
 
+// ============================================================
+// Courses / 役務（前受金）— esthetic course contracts
+// ============================================================
+
+export function getCourses(f: Filters) {
+  void f;
+  const courseNames = ["脱毛 全身コース", "フェイシャル 半年", "痩身 集中コース", "脱毛 VIO", "ブライダルエステ", "美白フェイシャル", "ハイフ 痩身"];
+  const stores = ["Esthé Blanc 表参道店", "Esthé Blanc 神戸三宮店"];
+  const shinpanCos = ["オリコ", "ジャックス", "セディナ"];
+  const surnames = ["佐藤", "鈴木", "高橋", "田中", "渡辺", "伊藤", "山本", "中村", "小林", "加藤", "吉田", "山田", "松本", "井上", "木村"];
+  const sessionsOpts = [6, 8, 10, 12, 18, 24];
+  const perSessionOpts = [9000, 12000, 18000, 25000];
+
+  const contracts = Array.from({ length: 30 }, (_, i) => {
+    const r = rngFor("course", i);
+    const sessions = sessionsOpts[Math.floor(r() * sessionsOpts.length)];
+    const contractAmount = sessions * perSessionOpts[Math.floor(r() * perSessionOpts.length)];
+    const pay = (["一括", "信販", "都度"] as const)[Math.floor(r() * 3)];
+    const monthsAgo = Math.floor(r() * 14);
+    const signedDate = `${shiftYm(CURRENT_YM, -monthsAgo)}-15`;
+    const expiryDate = `${shiftYm(CURRENT_YM, -monthsAgo + 12)}-15`;
+    const progress = Math.min(1, (monthsAgo / 10) * randFloat(rngFor("cu", i), 0.7, 1.2));
+    const used = Math.min(sessions, Math.round(sessions * progress));
+    const roll = r();
+    let status: "進行中" | "完了" | "解約" | "失効";
+    let refund = 0;
+    let penalty = 0;
+    let coolingOff = false;
+    if (used >= sessions) {
+      status = "完了";
+    } else if (roll < 0.1) {
+      status = "解約";
+      refund = Math.round(contractAmount * (1 - used / sessions) * 0.9);
+      penalty = Math.round(contractAmount * 0.1);
+      if (monthsAgo === 0) {
+        coolingOff = true;
+        refund = contractAmount;
+        penalty = 0;
+      }
+    } else if (expiryDate < TODAY) {
+      status = "失効";
+    } else {
+      status = "進行中";
+    }
+    const remaining = status === "進行中" ? Math.round(contractAmount * (1 - used / sessions)) : 0;
+    return {
+      id: `ct-${i}`,
+      customer: `${surnames[Math.floor(r() * surnames.length)]} 様`,
+      masked: `•••• ${1000 + Math.floor(r() * 8999)}`,
+      store: stores[Math.floor(r() * stores.length)],
+      course: courseNames[Math.floor(r() * courseNames.length)],
+      sessions,
+      used,
+      contractAmount,
+      remaining,
+      paymentType: pay,
+      shinpan: pay === "信販" ? shinpanCos[Math.floor(r() * shinpanCos.length)] : "",
+      signedDate,
+      expiryDate,
+      status,
+      refund,
+      penalty,
+      coolingOff,
+      consumption: used / sessions,
+    };
+  });
+
+  const active = contracts.filter((c) => c.status === "進行中");
+  const cancels = contracts.filter((c) => c.status === "解約");
+  const prepaidBalance = active.reduce((s, c) => s + c.remaining, 0);
+
+  const statusColors: Record<string, string> = { 進行中: "#0f766e", 完了: "#0ea5e9", 解約: "#f43f5e", 失効: "#c0a060" };
+  const byStatus = (["進行中", "完了", "解約", "失効"] as const).map((st) => ({ name: st, value: contracts.filter((c) => c.status === st).length, color: statusColors[st] }));
+  const payColors: Record<string, string> = { 一括: "#0f766e", 信販: "#c0a060", 都度: "#0ea5e9" };
+  const byPayment = (["一括", "信販", "都度"] as const).map((p) => ({ name: p, value: active.filter((c) => c.paymentType === p).reduce((s, c) => s + c.remaining, 0), color: payColors[p] }));
+  const shinpanByCompany = shinpanCos.map((co) => ({ name: co, balance: active.filter((c) => c.shinpan === co).reduce((s, c) => s + c.remaining, 0) })).filter((x) => x.balance > 0);
+
+  // consumption projection (役務残高の消化見込)
+  const projection: { label: string; balance: number }[] = [];
+  let bal = prepaidBalance;
+  for (let i = 0; i < 6; i++) {
+    projection.push({ label: shiftYm(CURRENT_YM, i), balance: Math.round(bal) });
+    bal *= 0.86;
+  }
+
+  return {
+    summary: {
+      prepaidBalance,
+      activeCount: active.length,
+      consumedThisMonth: Math.round(prepaidBalance * 0.07),
+      cancelCount: cancels.length,
+      refundTotal: cancels.reduce((s, c) => s + c.refund, 0),
+      coolingOffCount: contracts.filter((c) => c.coolingOff).length,
+      shinpanBalance: active.filter((c) => c.paymentType === "信販").reduce((s, c) => s + c.remaining, 0),
+      avgConsumption: contracts.length ? contracts.reduce((s, c) => s + c.consumption, 0) / contracts.length : 0,
+      totalContract: contracts.reduce((s, c) => s + c.contractAmount, 0),
+    },
+    contracts,
+    byStatus,
+    byPayment,
+    shinpanByCompany,
+    projection,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
@@ -1044,6 +1149,7 @@ export type CancellationsData = ReturnType<typeof getCancellations>;
 export type LaborData = ReturnType<typeof getLabor>;
 export type FundingData = ReturnType<typeof getFunding>;
 export type FranchiseData = ReturnType<typeof getFranchise>;
+export type CoursesData = ReturnType<typeof getCourses>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;
