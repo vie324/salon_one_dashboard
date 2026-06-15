@@ -5,11 +5,15 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Hand,
+  HeartPulse,
   LayoutDashboard,
   Landmark,
   Megaphone,
   Network,
   Package,
+  Repeat,
+  Scissors,
   Scale,
   Settings,
   Store,
@@ -39,8 +43,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise", "/courses"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise", "/courses"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -85,7 +89,16 @@ export const NAV: NavGroup[] = [
       { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
       { href: "/cancellations", label: "キャンセル料", icon: CalendarX, desc: "無断/直前キャンセルの請求・回収・常習者" },
       { href: "/labor", label: "人時生産性・シフト", icon: Clock, desc: "生産性・適正人員・需要予測・歩合" },
-      { href: "/courses", label: "役務・コース管理", icon: ClipboardList, desc: "エステの前受金・契約消化・解約・信販" },
+    ],
+  },
+  {
+    label: "業態別",
+    items: [
+      { href: "/courses", label: "役務・コース（エステ）", icon: ClipboardList, desc: "前受金・消化・中途解約・信販" },
+      { href: "/insurance", label: "保険診療・療養費（整体）", icon: HeartPulse, desc: "保険/自費区分・療養費・返戻・入金遅延" },
+      { href: "/stylists", label: "スタイリスト・歩合（ヘア）", icon: Scissors, desc: "指名・ランク別歩合・面貸し/委託" },
+      { href: "/membership", label: "定額制・回転（ネイル/アイラッシュ）", icon: Repeat, desc: "通い放題・回転率・リペア" },
+      { href: "/relax", label: "施術・委託（リラク）", icon: Hand, desc: "資格区分・分単位・委託分配" },
     ],
   },
   {

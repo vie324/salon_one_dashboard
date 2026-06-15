@@ -9,9 +9,13 @@ import {
   getFinancials,
   getFranchise,
   getFunding,
+  getInsurance,
   getInventory,
   getLabor,
   getMarketing,
+  getMembership,
+  getRelax,
+  getStylists,
   getOverview,
   getReconciliation,
   getSales,
@@ -40,6 +44,10 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   funding: getFunding,
   franchise: getFranchise,
   courses: getCourses,
+  insurance: getInsurance,
+  stylists: getStylists,
+  membership: getMembership,
+  relax: getRelax,
 };
 
 export function GET(
