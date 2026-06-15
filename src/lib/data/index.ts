@@ -982,12 +982,68 @@ export function getCancellations(f: Filters) {
   };
 }
 
+// ============================================================
+// Funding & tax (資金調達・税務)
+// ============================================================
+
+export function getFunding(f: Filters) {
+  const loans = [
+    { id: "l1", name: "日本政策金融公庫 設備資金", principal: 60_000_000, balance: 38_400_000, rate: 0.012, monthlyPayment: 740_000, remainingMonths: 52 },
+    { id: "l2", name: "地方銀行 運転資金", principal: 30_000_000, balance: 12_500_000, rate: 0.008, monthlyPayment: 420_000, remainingMonths: 30 },
+    { id: "l3", name: "リース（脱毛機・什器）", principal: 18_000_000, balance: 9_200_000, rate: 0.024, monthlyPayment: 330_000, remainingMonths: 28 },
+  ];
+  const subsidies = [
+    { id: "s1", name: "IT導入補助金（Salon One 導入）", amount: 1_500_000, status: "入金済" as const },
+    { id: "s2", name: "事業再構築補助金（新店舗）", amount: 8_000_000, status: "採択" as const },
+    { id: "s3", name: "キャリアアップ助成金", amount: 1_140_000, status: "申請中" as const },
+    { id: "s4", name: "小規模事業者持続化補助金", amount: 500_000, status: "申請中" as const },
+  ];
+  const a = aggregate(selectMonths(periodMonths(f), f));
+  const taxablePurchase = a.cogs + a.cost.utilities + a.cost.advertising + a.cost.paymentFees + a.cost.other + a.cost.rent;
+  const consumptionTaxDue = Math.round(a.revenue * 0.1 - taxablePurchase * 0.1);
+  return {
+    summary: {
+      loanBalance: loans.reduce((s, l) => s + l.balance, 0),
+      monthlyRepayment: loans.reduce((s, l) => s + l.monthlyPayment, 0),
+      subsidyApproved: subsidies.filter((s) => s.status !== "申請中").reduce((s, x) => s + x.amount, 0),
+      subsidyPending: subsidies.filter((s) => s.status === "申請中").reduce((s, x) => s + x.amount, 0),
+      consumptionTaxDue,
+    },
+    loans,
+    subsidies,
+  };
+}
+
+// ============================================================
+// Franchise / のれん分け (FC・加盟店)
+// ============================================================
+
+export function getFranchise(f: Filters) {
+  const stores = [
+    { id: "fc1", name: "Lumière 札幌（FC）", brand: "Lumière", color: "#0f766e", area: "札幌", owner: "北海道ビューティ(株)", openedYear: 2021, monthlyRevenue: 5_200_000, royaltyRate: 0.05 },
+    { id: "fc2", name: "MOD's Nail 仙台（FC）", brand: "MOD's Nail", color: "#be185d", area: "仙台", owner: "東北ビューティ(株)", openedYear: 2022, monthlyRevenue: 3_100_000, royaltyRate: 0.06 },
+    { id: "fc3", name: "Reposer 広島（のれん分け）", brand: "Reposer", color: "#0891b2", area: "広島", owner: "佐藤 健（独立）", openedYear: 2020, monthlyRevenue: 2_700_000, royaltyRate: 0.03 },
+    { id: "fc4", name: "Lashé 金沢（FC）", brand: "Lashé", color: "#7c3aed", area: "金沢", owner: "北陸ラッシュ(株)", openedYear: 2023, monthlyRevenue: 2_300_000, royaltyRate: 0.06 },
+    { id: "fc5", name: "Esthé Blanc 京都（FC）", brand: "Esthé Blanc", color: "#b45309", area: "京都", owner: "関西エステ(株)", openedYear: 2022, monthlyRevenue: 6_400_000, royaltyRate: 0.05 },
+  ];
+  const months = periodMonths(f).length;
+  const rows = stores.map((s) => ({ ...s, revenue: s.monthlyRevenue * months, royalty: Math.round(s.monthlyRevenue * months * s.royaltyRate) }));
+  const totalRevenue = rows.reduce((a, r) => a + r.revenue, 0);
+  const totalRoyalty = rows.reduce((a, r) => a + r.royalty, 0);
+  return {
+    summary: { count: rows.length, totalRevenue, totalRoyalty, avgRoyaltyRate: totalRevenue ? totalRoyalty / totalRevenue : 0, months },
+    rows,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
 export type InventoryData = ReturnType<typeof getInventory>;
 export type CancellationsData = ReturnType<typeof getCancellations>;
 export type LaborData = ReturnType<typeof getLabor>;
+export type FundingData = ReturnType<typeof getFunding>;
+export type FranchiseData = ReturnType<typeof getFranchise>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;
