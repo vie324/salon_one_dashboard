@@ -430,3 +430,47 @@ export const SUBSCRIPTION_MONTHS: SubscriptionMonth[] = [];
 // Convenience: a tiny pool used by the reports view.
 export const SAMPLE_PROCESSOR_NAMES = PROCESSORS.map((p) => p.name);
 export const ANY_CHANNEL = () => pick(rngFor("x"), CHANNELS);
+
+// ---- Inventory & ordering (材料・店販在庫) --------------------------------
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  type: "材料" | "店販";
+  unit: string;
+  unitCost: number;
+  stock: number;
+  reorderPoint: number;
+  monthlyUsage: number;
+  supplier: string;
+  leadDays: number;
+}
+
+const INV_SEED: Omit<InventoryItem, "id">[] = [
+  { name: "カラー剤 6%（共通）", type: "材料", unit: "本", unitCost: 480, stock: 62, reorderPoint: 40, monthlyUsage: 120, supplier: "ミルボン", leadDays: 3 },
+  { name: "カラー剤 ファッション系", type: "材料", unit: "本", unitCost: 620, stock: 22, reorderPoint: 30, monthlyUsage: 70, supplier: "ウエラ", leadDays: 4 },
+  { name: "オキシ（2剤）", type: "材料", unit: "本", unitCost: 380, stock: 84, reorderPoint: 50, monthlyUsage: 90, supplier: "ミルボン", leadDays: 3 },
+  { name: "パーマ液 セット", type: "材料", unit: "セット", unitCost: 720, stock: 18, reorderPoint: 20, monthlyUsage: 25, supplier: "アリミノ", leadDays: 5 },
+  { name: "トリートメント材（バック）", type: "材料", unit: "本", unitCost: 1200, stock: 36, reorderPoint: 25, monthlyUsage: 40, supplier: "ナプラ", leadDays: 4 },
+  { name: "縮毛矯正剤 セット", type: "材料", unit: "セット", unitCost: 980, stock: 14, reorderPoint: 12, monthlyUsage: 16, supplier: "ミルボン", leadDays: 6 },
+  { name: "ホイル / コットン", type: "材料", unit: "箱", unitCost: 850, stock: 11, reorderPoint: 15, monthlyUsage: 18, supplier: "共通備品", leadDays: 2 },
+  { name: "ジェル クリア", type: "材料", unit: "個", unitCost: 1400, stock: 42, reorderPoint: 30, monthlyUsage: 35, supplier: "プリジェル", leadDays: 5 },
+  { name: "ジェル カラー（各色）", type: "材料", unit: "個", unitCost: 1600, stock: 96, reorderPoint: 60, monthlyUsage: 70, supplier: "パラジェル", leadDays: 6 },
+  { name: "アセトン / リムーバー", type: "材料", unit: "L", unitCost: 700, stock: 20, reorderPoint: 18, monthlyUsage: 22, supplier: "共通備品", leadDays: 3 },
+  { name: "ネイルファイル", type: "材料", unit: "本", unitCost: 90, stock: 210, reorderPoint: 150, monthlyUsage: 180, supplier: "共通備品", leadDays: 2 },
+  { name: "グルー（まつげ）", type: "材料", unit: "本", unitCost: 2200, stock: 15, reorderPoint: 20, monthlyUsage: 26, supplier: "松風", leadDays: 7 },
+  { name: "エクステ毛（各カール）", type: "材料", unit: "箱", unitCost: 1300, stock: 58, reorderPoint: 40, monthlyUsage: 48, supplier: "ビューラッシュ", leadDays: 5 },
+  { name: "リムーバー（まつげ）", type: "材料", unit: "本", unitCost: 1500, stock: 23, reorderPoint: 18, monthlyUsage: 20, supplier: "松風", leadDays: 6 },
+  { name: "痩身ジェル", type: "材料", unit: "個", unitCost: 3200, stock: 25, reorderPoint: 20, monthlyUsage: 26, supplier: "業務用商社", leadDays: 7 },
+  { name: "脱毛ジェル", type: "材料", unit: "L", unitCost: 2600, stock: 31, reorderPoint: 25, monthlyUsage: 28, supplier: "業務用商社", leadDays: 7 },
+  { name: "パック剤（フェイシャル）", type: "材料", unit: "箱", unitCost: 4200, stock: 9, reorderPoint: 12, monthlyUsage: 14, supplier: "業務用商社", leadDays: 8 },
+  { name: "マッサージオイル", type: "材料", unit: "L", unitCost: 1800, stock: 29, reorderPoint: 20, monthlyUsage: 24, supplier: "共通備品", leadDays: 4 },
+  { name: "フェイスタオル（消耗）", type: "材料", unit: "枚", unitCost: 120, stock: 420, reorderPoint: 300, monthlyUsage: 320, supplier: "リネン業者", leadDays: 3 },
+  { name: "シャンプー（店販）", type: "店販", unit: "本", unitCost: 1600, stock: 72, reorderPoint: 40, monthlyUsage: 55, supplier: "ミルボン", leadDays: 4 },
+  { name: "トリートメント（店販）", type: "店販", unit: "本", unitCost: 1900, stock: 61, reorderPoint: 40, monthlyUsage: 50, supplier: "ミルボン", leadDays: 4 },
+  { name: "ヘアオイル（店販）", type: "店販", unit: "本", unitCost: 2400, stock: 34, reorderPoint: 25, monthlyUsage: 30, supplier: "ナプラ", leadDays: 5 },
+  { name: "化粧水（店販）", type: "店販", unit: "本", unitCost: 2800, stock: 27, reorderPoint: 20, monthlyUsage: 24, supplier: "業務用商社", leadDays: 6 },
+  { name: "美容液（店販）", type: "店販", unit: "本", unitCost: 4800, stock: 17, reorderPoint: 15, monthlyUsage: 16, supplier: "業務用商社", leadDays: 6 },
+];
+
+export const INVENTORY: InventoryItem[] = INV_SEED.map((s, i) => ({ id: `inv-${i}`, ...s }));

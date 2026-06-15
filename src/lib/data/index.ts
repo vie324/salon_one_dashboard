@@ -29,6 +29,7 @@ import {
 } from "./catalog";
 import {
   CHANNEL_MONTHS,
+  INVENTORY,
   PREPAID_MONTHS,
   RECON_ITEMS,
   SETTLEMENTS,
@@ -39,6 +40,7 @@ import {
   opexOf,
   revenueOf,
 } from "./generate";
+import { randFloat, rngFor } from "./random";
 import {
   CATEGORY_LABEL,
   PAYMENT_LABEL,
@@ -647,13 +649,73 @@ export function getStoreDetail(storeId: string, f: Filters) {
   const trend = monthlyAggs(t12, sf).map(({ ym, agg }) => ({ label: ym, revenue: Math.round(agg.revenue), operatingProfit: Math.round(agg.operatingProfit) }));
   const staff = STAFF_PERF.filter((x) => x.storeId === storeId).map((x) => ({ ...x, designationRate: x.customers ? x.designations / x.customers : 0 })).sort((x, y) => y.sales - x.sales);
   const brand = brandById(s.brandId)!;
+
+  // investment payback (出店・設備投資ROI)
+  const monthlyProfit = a.operatingProfit / Math.max(1, cur.length);
+  const initialInvestment = s.seats * 2_600_000; // 内装＋設備の概算
+  const monthsOpen = (2026 - s.openedYear) * 12 + 6;
+  const investment = {
+    initialInvestment,
+    monthlyProfit,
+    paybackMonths: monthlyProfit > 0 ? initialInvestment / monthlyProfit : 0,
+    annualRoi: initialInvestment ? (monthlyProfit * 12) / initialInvestment : 0,
+    recoveryRate: initialInvestment ? Math.min(1.5, (monthsOpen * monthlyProfit) / initialInvestment) : 0,
+    monthsOpen,
+  };
+
   return {
     store: { ...s, brandName: brand.name, brandColor: brand.color, category: CATEGORY_LABEL[brand.category] },
     agg: a,
     deltas: { revenue: safeDelta(a.revenue, p.revenue), profit: safeDelta(a.operatingProfit, p.operatingProfit), customers: safeDelta(a.customers, p.customers) },
     pl: buildPL(a, p),
-    trend, staff,
+    trend, staff, investment,
     paymentMix: paymentSplit(selectMonths(cur, sf)).sort((x, y) => y.amount - x.amount),
+  };
+}
+
+// ============================================================
+// Labour productivity & staffing (人時生産性・シフト)
+// ============================================================
+
+export function getLabor(f: Filters) {
+  const cur = periodMonths(f);
+  const months = cur.length;
+  const stores = filteredStores(f);
+  const a = aggregate(selectMonths(cur, f));
+
+  const rows = stores.map((s) => {
+    const sa = aggregate(selectMonths(cur, { ...f, storeId: s.id }));
+    const laborHours = s.staff * 160 * months;
+    const productivity = laborHours ? sa.revenue / laborHours : 0;
+    const recommendedStaff = Math.max(3, Math.round(sa.customers / months / 85));
+    return {
+      id: s.id,
+      name: s.name,
+      brandColor: brandById(s.brandId)!.color,
+      staff: s.staff,
+      productivity,
+      laborShare: sa.grossProfit ? sa.cost.labor / sa.grossProfit : 0,
+      laborCostRatio: sa.revenue ? sa.cost.labor / sa.revenue : 0,
+      recommendedStaff,
+      gap: s.staff - recommendedStaff,
+    };
+  }).sort((x, y) => y.productivity - x.productivity);
+
+  const staffTotal = stores.reduce((s, st) => s + st.staff, 0);
+  const totalHours = staffTotal * 160 * months;
+  const commissionRate = 0.05;
+
+  return {
+    summary: {
+      productivity: totalHours ? a.revenue / totalHours : 0,
+      laborShare: a.grossProfit ? a.cost.labor / a.grossProfit : 0,
+      laborCostRatio: a.revenue ? a.cost.labor / a.revenue : 0,
+      commissionTotal: a.tech * commissionRate,
+      laborCost: a.cost.labor,
+      staffTotal,
+    },
+    rows,
+    heatmap: buildHeatmap(f),
   };
 }
 
@@ -749,7 +811,34 @@ export function getMarketing(f: Filters) {
     return { label: ym, paid, other, spend };
   });
 
-  return { rows, totals, blendedCpa, blendedRoas, trend };
+  // online reputation (口コミ) — Google / HotPepper Beauty
+  const reviews = {
+    googleRating: 4.5,
+    hpbRating: 4.4,
+    totalReviews: 3820,
+    monthlyNew: 142,
+    responded: 118,
+    responseRate: 118 / 142,
+    distribution: [
+      { star: 5, count: 2480 },
+      { star: 4, count: 920 },
+      { star: 3, count: 280 },
+      { star: 2, count: 90 },
+      { star: 1, count: 50 },
+    ],
+  };
+
+  // LINE official account / CRM effectiveness
+  const line = {
+    friends: 18420,
+    monthlyBroadcast: 6,
+    openRate: 0.62,
+    clickRate: 0.14,
+    visitsDriven: 540,
+    blockRate: 0.018,
+  };
+
+  return { rows, totals, blendedCpa, blendedRoas, trend, reviews, line };
 }
 
 // ============================================================
@@ -805,9 +894,156 @@ export function getBudget(f: Filters) {
   };
 }
 
+// ============================================================
+// Inventory & ordering (在庫・発注)
+// ============================================================
+
+export function getInventory(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, f));
+  const items = INVENTORY.map((it) => {
+    const value = it.stock * it.unitCost;
+    const coverDays = it.monthlyUsage > 0 ? Math.round((it.stock / it.monthlyUsage) * 30) : 999;
+    const status: "out" | "low" | "ok" = it.stock <= it.reorderPoint * 0.5 ? "out" : it.stock <= it.reorderPoint ? "low" : "ok";
+    const variance = Math.round(value * randFloat(rngFor("inv", it.id), -0.04, 0.01)); // 棚卸差異（多くは減耗）
+    const suggestedOrder = it.stock <= it.reorderPoint ? Math.max(0, it.reorderPoint * 2 - it.stock) : 0;
+    return { ...it, value, coverDays, status, needsReorder: it.stock <= it.reorderPoint, variance, suggestedOrder };
+  });
+  const reorderAlerts = items.filter((i) => i.needsReorder).sort((x, y) => x.coverDays - y.coverDays);
+  const totalValue = items.reduce((s, i) => s + i.value, 0);
+  const materialValue = items.filter((i) => i.type === "材料").reduce((s, i) => s + i.value, 0);
+  const retailValue = totalValue - materialValue;
+  const varianceTotal = items.reduce((s, i) => s + i.variance, 0);
+  return {
+    summary: {
+      totalValue,
+      materialValue,
+      retailValue,
+      reorderCount: reorderAlerts.length,
+      cogs: a.cogs,
+      cogsRatio: a.revenue ? a.cogs / a.revenue : 0,
+      varianceTotal,
+      lossRate: totalValue ? Math.abs(varianceTotal) / totalValue : 0,
+    },
+    items,
+    reorderAlerts,
+    byType: [
+      { name: "材料", value: materialValue, color: "#0f766e" },
+      { name: "店販", value: retailValue, color: "#c0a060" },
+    ],
+  };
+}
+
+// ============================================================
+// Cancellation fees (キャンセル料・無断対策)
+// ============================================================
+
+export function getCancellations(f: Filters) {
+  const cur = periodMonths(f);
+  const a = aggregate(selectMonths(cur, f));
+  const avgFee = 3300;
+  const avgTicket = a.customers ? a.revenue / a.customers : 0;
+  const billed = Math.round(a.noShows * avgFee + a.cancellations * 0.1 * avgFee);
+  const collectRate = 0.78;
+  const collected = Math.round(billed * collectRate);
+  const outstanding = billed - collected;
+  const opportunityLoss = Math.round((a.cancellations + a.noShows) * avgTicket * 0.6);
+
+  const t12 = trailing12(f);
+  const trend = monthlyAggs(t12, f).map(({ ym, agg }) => ({
+    label: ym,
+    noShows: agg.noShows,
+    cancellations: agg.cancellations,
+    billed: Math.round(agg.noShows * avgFee + agg.cancellations * 0.1 * avgFee),
+  }));
+
+  const offenders = [
+    { id: "c1", name: "T. M 様", masked: "•••• 1842", count: 4, lastDate: `${CURRENT_YM}-09`, outstanding: 13200 },
+    { id: "c2", name: "K. S 様", masked: "•••• 7705", count: 3, lastDate: `${CURRENT_YM}-07`, outstanding: 9900 },
+    { id: "c3", name: "R. Y 様", masked: "•••• 3391", count: 3, lastDate: `${CURRENT_YM}-05`, outstanding: 0 },
+    { id: "c4", name: "A. N 様", masked: "•••• 2210", count: 2, lastDate: `${CURRENT_YM}-11`, outstanding: 6600 },
+    { id: "c5", name: "M. H 様", masked: "•••• 9087", count: 2, lastDate: `${CURRENT_YM}-03`, outstanding: 3300 },
+  ];
+
+  return {
+    summary: {
+      billed,
+      collected,
+      outstanding,
+      collectRate,
+      opportunityLoss,
+      noShows: a.noShows,
+      cancellations: a.cancellations,
+      cancelRate: a.reservations ? a.cancellations / a.reservations : 0,
+      noShowRate: a.reservations ? a.noShows / a.reservations : 0,
+    },
+    trend,
+    offenders,
+  };
+}
+
+// ============================================================
+// Funding & tax (資金調達・税務)
+// ============================================================
+
+export function getFunding(f: Filters) {
+  const loans = [
+    { id: "l1", name: "日本政策金融公庫 設備資金", principal: 60_000_000, balance: 38_400_000, rate: 0.012, monthlyPayment: 740_000, remainingMonths: 52 },
+    { id: "l2", name: "地方銀行 運転資金", principal: 30_000_000, balance: 12_500_000, rate: 0.008, monthlyPayment: 420_000, remainingMonths: 30 },
+    { id: "l3", name: "リース（脱毛機・什器）", principal: 18_000_000, balance: 9_200_000, rate: 0.024, monthlyPayment: 330_000, remainingMonths: 28 },
+  ];
+  const subsidies = [
+    { id: "s1", name: "IT導入補助金（Salon One 導入）", amount: 1_500_000, status: "入金済" as const },
+    { id: "s2", name: "事業再構築補助金（新店舗）", amount: 8_000_000, status: "採択" as const },
+    { id: "s3", name: "キャリアアップ助成金", amount: 1_140_000, status: "申請中" as const },
+    { id: "s4", name: "小規模事業者持続化補助金", amount: 500_000, status: "申請中" as const },
+  ];
+  const a = aggregate(selectMonths(periodMonths(f), f));
+  const taxablePurchase = a.cogs + a.cost.utilities + a.cost.advertising + a.cost.paymentFees + a.cost.other + a.cost.rent;
+  const consumptionTaxDue = Math.round(a.revenue * 0.1 - taxablePurchase * 0.1);
+  return {
+    summary: {
+      loanBalance: loans.reduce((s, l) => s + l.balance, 0),
+      monthlyRepayment: loans.reduce((s, l) => s + l.monthlyPayment, 0),
+      subsidyApproved: subsidies.filter((s) => s.status !== "申請中").reduce((s, x) => s + x.amount, 0),
+      subsidyPending: subsidies.filter((s) => s.status === "申請中").reduce((s, x) => s + x.amount, 0),
+      consumptionTaxDue,
+    },
+    loans,
+    subsidies,
+  };
+}
+
+// ============================================================
+// Franchise / のれん分け (FC・加盟店)
+// ============================================================
+
+export function getFranchise(f: Filters) {
+  const stores = [
+    { id: "fc1", name: "Lumière 札幌（FC）", brand: "Lumière", color: "#0f766e", area: "札幌", owner: "北海道ビューティ(株)", openedYear: 2021, monthlyRevenue: 5_200_000, royaltyRate: 0.05 },
+    { id: "fc2", name: "MOD's Nail 仙台（FC）", brand: "MOD's Nail", color: "#be185d", area: "仙台", owner: "東北ビューティ(株)", openedYear: 2022, monthlyRevenue: 3_100_000, royaltyRate: 0.06 },
+    { id: "fc3", name: "Reposer 広島（のれん分け）", brand: "Reposer", color: "#0891b2", area: "広島", owner: "佐藤 健（独立）", openedYear: 2020, monthlyRevenue: 2_700_000, royaltyRate: 0.03 },
+    { id: "fc4", name: "Lashé 金沢（FC）", brand: "Lashé", color: "#7c3aed", area: "金沢", owner: "北陸ラッシュ(株)", openedYear: 2023, monthlyRevenue: 2_300_000, royaltyRate: 0.06 },
+    { id: "fc5", name: "Esthé Blanc 京都（FC）", brand: "Esthé Blanc", color: "#b45309", area: "京都", owner: "関西エステ(株)", openedYear: 2022, monthlyRevenue: 6_400_000, royaltyRate: 0.05 },
+  ];
+  const months = periodMonths(f).length;
+  const rows = stores.map((s) => ({ ...s, revenue: s.monthlyRevenue * months, royalty: Math.round(s.monthlyRevenue * months * s.royaltyRate) }));
+  const totalRevenue = rows.reduce((a, r) => a + r.revenue, 0);
+  const totalRoyalty = rows.reduce((a, r) => a + r.royalty, 0);
+  return {
+    summary: { count: rows.length, totalRevenue, totalRoyalty, avgRoyaltyRate: totalRevenue ? totalRoyalty / totalRevenue : 0, months },
+    rows,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
+export type InventoryData = ReturnType<typeof getInventory>;
+export type CancellationsData = ReturnType<typeof getCancellations>;
+export type LaborData = ReturnType<typeof getLabor>;
+export type FundingData = ReturnType<typeof getFunding>;
+export type FranchiseData = ReturnType<typeof getFranchise>;
 export type OverviewData = ReturnType<typeof getOverview>;
 export type SalesData = ReturnType<typeof getSales>;
 export type CashflowData = ReturnType<typeof getCashflow>;

@@ -1,9 +1,14 @@
 import {
   BarChart3,
+  Banknote,
+  CalendarX,
+  Clock,
   FileText,
   LayoutDashboard,
   Landmark,
   Megaphone,
+  Network,
+  Package,
   Scale,
   Settings,
   Store,
@@ -33,8 +38,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -70,12 +75,22 @@ export const NAV: NavGroup[] = [
       { href: "/cashflow", label: "資金繰り", icon: Wallet, desc: "現金・決済別入金・前受金" },
       { href: "/reconciliation", label: "入金・突合", icon: Scale, desc: "売上と入金の差異管理" },
       { href: "/financials", label: "財務・PL", icon: Landmark, desc: "損益計算書・損益分岐点" },
+      { href: "/funding", label: "資金調達・税務", icon: Banknote, desc: "借入・返済予定・補助金・消費税" },
+    ],
+  },
+  {
+    label: "運営",
+    items: [
+      { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
+      { href: "/cancellations", label: "キャンセル料", icon: CalendarX, desc: "無断/直前キャンセルの請求・回収・常習者" },
+      { href: "/labor", label: "人時生産性・シフト", icon: Clock, desc: "生産性・適正人員・需要予測・歩合" },
     ],
   },
   {
     label: "店舗・レポート",
     items: [
       { href: "/stores", label: "店舗管理", icon: Store, desc: "多店舗・多ブランド比較" },
+      { href: "/franchise", label: "FC・のれん分け", icon: Network, desc: "加盟店別PL・ロイヤリティ" },
       { href: "/reports", label: "レポート出力", icon: FileText, desc: "月次資料・税理士提出資料" },
       { href: "/settings", label: "設定・連携", icon: Settings, desc: "Salon One 連携設定" },
     ],

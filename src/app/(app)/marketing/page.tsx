@@ -1,17 +1,38 @@
-import { Megaphone, Target, TrendingUp, UserPlus } from "lucide-react";
+import { Megaphone, MessageCircle, Star, Target, TrendingUp, UserPlus } from "lucide-react";
 import { BarsChart, DonutChart } from "@/components/charts/charts";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatCard } from "@/components/ui/StatCard";
-import { Badge, Card, CardHeader } from "@/components/ui/primitives";
+import { Badge, Card, CardHeader, ProgressBar } from "@/components/ui/primitives";
 import { SortableTable, type Column, type Row } from "@/components/ui/SortableTable";
 import { getMarketing } from "@/lib/data";
 import { parseFilters } from "@/lib/filters";
-import { formatDecimal, formatNumber, formatYen, formatYenCompact, formatYm } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import type { ChannelKind } from "@/lib/types";
 
 export const metadata = { title: "マーケティング" };
+
+function Rating({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-0.5 flex items-center gap-1">
+        <span className="text-lg font-bold tnum text-slate-900 dark:text-slate-50">{value.toFixed(1)}</span>
+        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+      </p>
+    </div>
+  );
+}
+
+function ReviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-bold tnum text-slate-900 dark:text-slate-50">{value}</p>
+    </div>
+  );
+}
 
 const KIND: Record<ChannelKind, { label: string; tone: "brand" | "info" | "success" | "neutral"; color: string }> = {
   paid: { label: "広告", tone: "brand", color: "#0f766e" },
@@ -97,6 +118,39 @@ export default function MarketingPage({
           />
         </ChartCard>
       </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <ChartCard className="xl:col-span-5" title="口コミ・評価" subtitle="Google / ホットペッパービューティー" icon={<Star className="h-[18px] w-[18px]" />}>
+          <div className="grid grid-cols-2 gap-3">
+            <Rating label="Google" value={data.reviews.googleRating} />
+            <Rating label="ホットペッパー" value={data.reviews.hpbRating} />
+            <ReviewStat label="総レビュー" value={`${formatNumber(data.reviews.totalReviews)}件`} />
+            <ReviewStat label="当月新規" value={`+${formatNumber(data.reviews.monthlyNew)}`} />
+          </div>
+          <div className="mt-3">
+            <div className="mb-1 flex justify-between text-xs text-slate-400">
+              <span>口コミ返信率</span>
+              <span className="tnum">{formatPercent(data.reviews.responseRate, 0)}</span>
+            </div>
+            <ProgressBar value={data.reviews.responseRate} tone="brand" />
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-400">返信率の高さは集客・再来に寄与します。低評価への迅速な対応が重要です。</p>
+          </div>
+        </ChartCard>
+        <ChartCard className="xl:col-span-7" title="評価分布" subtitle="星別の口コミ件数">
+          <BarsChart data={data.reviews.distribution.map((d) => ({ label: `★${d.star}`, count: d.count }))} height={230} yFormat="count" series={[{ key: "count", name: "件数", color: "#c0a060" }]} />
+        </ChartCard>
+      </div>
+
+      <ChartCard className="mt-4" title="LINE公式・CRM" subtitle="友だち基盤と配信効果" icon={<MessageCircle className="h-[18px] w-[18px]" />}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <ReviewStat label="友だち数" value={`${formatNumber(data.line.friends)}人`} />
+          <ReviewStat label="月間配信" value={`${data.line.monthlyBroadcast}回`} />
+          <ReviewStat label="開封率" value={formatPercent(data.line.openRate, 0)} />
+          <ReviewStat label="クリック率" value={formatPercent(data.line.clickRate, 0)} />
+          <ReviewStat label="来店誘導" value={`${formatNumber(data.line.visitsDriven)}件`} />
+          <ReviewStat label="ブロック率" value={formatPercent(data.line.blockRate, 1)} />
+        </div>
+      </ChartCard>
 
       <Card className="mt-4">
         <CardHeader title="チャネル別 効果" subtitle="費用対効果（CPA・ROAS・LTV）。列ヘッダーで並べ替え・絞り込み・CSV出力" icon={<Megaphone className="h-[18px] w-[18px]" />} />

@@ -28,6 +28,7 @@ export default function StoresPage({
   const data = getStores(filters);
   const qs = buildQuery(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
+  const avgMargin = data.totals.revenue ? data.totals.operatingProfit / data.totals.revenue : 0;
 
   const cols: Column[] = [
     { key: "name", label: "店舗", type: "entity" },
@@ -36,6 +37,7 @@ export default function StoresPage({
     { key: "revenue", label: "売上", type: "yenCompact", align: "right" },
     { key: "operatingProfit", label: "営業利益", type: "yenCompact", align: "right", signed: true },
     { key: "margin", label: "利益率", type: "percent", align: "right" },
+    { key: "vsAvg", label: "対全店平均", type: "delta", align: "right" },
     { key: "ticket", label: "客単価", type: "yen", align: "right" },
     { key: "revenuePerStaff", label: "人時生産性", type: "yenCompact", align: "right" },
     { key: "growth", label: compareText, type: "delta", align: "right" },
@@ -51,6 +53,7 @@ export default function StoresPage({
     revenue: s.revenue,
     operatingProfit: s.operatingProfit,
     margin: s.margin,
+    vsAvg: s.margin - avgMargin,
     ticket: s.ticket,
     revenuePerStaff: s.revenuePerStaff,
     growth: s.growth,

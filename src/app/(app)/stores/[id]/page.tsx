@@ -1,11 +1,11 @@
-import { ArrowLeft, MapPin, Users } from "lucide-react";
+import { ArrowLeft, MapPin, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DonutChart, TrendChart } from "@/components/charts/charts";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatCard } from "@/components/ui/StatCard";
-import { Badge, Card, CardHeader } from "@/components/ui/primitives";
+import { Badge, Card, CardHeader, ProgressBar } from "@/components/ui/primitives";
 import { CHART_COLORS } from "@/lib/colors";
 import { getStoreDetail } from "@/lib/data";
 import { buildQuery, parseFilters } from "@/lib/filters";
@@ -82,6 +82,23 @@ export default function StoreDetailPage({
         </ChartCard>
       </div>
 
+      <ChartCard className="mt-4" title="出店・投資回収（概算）" subtitle="内装・設備投資に対する回収状況" icon={<TrendingUp className="h-[18px] w-[18px]" />}>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <InvStat label="初期投資（概算）" value={formatYenCompact(data.investment.initialInvestment)} />
+          <InvStat label="月次営業利益" value={formatYenCompact(data.investment.monthlyProfit)} />
+          <InvStat label="投資回収期間" value={`${Math.round(data.investment.paybackMonths)}ヶ月`} />
+          <InvStat label="年間ROI" value={formatPercent(data.investment.annualRoi, 0)} />
+        </div>
+        <div className="mt-4">
+          <div className="mb-1 flex justify-between text-xs text-slate-400">
+            <span>投資回収の進捗（開業 {Math.round(data.investment.monthsOpen / 12)} 年経過）</span>
+            <span className="tnum">{formatPercent(Math.min(1, data.investment.recoveryRate), 0)}</span>
+          </div>
+          <ProgressBar value={data.investment.recoveryRate} tone={data.investment.recoveryRate >= 1 ? "emerald" : "brand"} />
+          <p className="mt-2 text-[11px] text-slate-400">初期投資は席数ベースの概算です。回収済み（100%超）かどうかが、追加投資・改装・撤退判断の目安になります。</p>
+        </div>
+      </ChartCard>
+
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Card className="xl:col-span-7">
           <CardHeader title="損益（PL）" subtitle={compareText} />
@@ -138,5 +155,14 @@ export default function StoreDetailPage({
         </Card>
       </div>
     </>
+  );
+}
+
+function InvStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+      <p className="text-[11px] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-bold tnum text-slate-900 dark:text-slate-50">{value}</p>
+    </div>
   );
 }
