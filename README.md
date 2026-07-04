@@ -3,7 +3,10 @@
 複数ブランド・多店舗のサロン経営（ヘア／ネイル／アイラッシュ／リラク／エステ／整体）を統合管理する、**経営者向けダッシュボード**のプロトタイプです。
 既存の現場向けシステム「**Salon One**」からデータを取得し、経営判断に必要な数値・資金・財務を一画面に集約することを想定しています。
 
-> **位置づけ**：本リポジトリは「機能・デザイン・UX の参照実装（リファレンス）」です。データ連携方式は後決めのため、現在は**決定論的なモックデータ**で動作します。Salon One 開発チームへの共有を前提に、**連携の差し込み口を一箇所に集約**しています（後述）。
+> **位置づけ**：本リポジトリは「機能・デザイン・UX の参照実装（リファレンス）」から、**段階的に実データ連携へ移行中**です。
+> - **フェーズ0/1（実装済み）**: Salon One API（`https://salonone.net/api`）への認証クライアントと、**ブランド・店舗・スタッフの実マスタ同期**。`SALONONE_*` 環境変数を設定すると実マスタで動作し、未設定なら従来どおり決定論的なモックで動作します。
+> - **フェーズ2（次）**: `GET /api/appointments/calendar` を店舗×日で集計し、売上・客数・予約などの実績を実データ化（ETL方式）。
+> - **フェーズ3**: PL・入金突合・広告費など、Salon One 側にデータ源が無い領域。**必要エンドポイントの要求仕様を [`docs/salonone-api-requirements.md`](docs/salonone-api-requirements.md) に整理済み**。実データ/参考値の区分は `/settings` の「データカバレッジ」に表示されます。
 
 > 画面プレビューはチャットに添付したスクリーンショットを参照してください（ライト／ダーク両対応）。
 
@@ -28,9 +31,9 @@ Node.js は **20.x** を推奨（`.nvmrc` / `package.json` の `engines` で固�
 
 1. Vercel で「**Add New… → Project**」から GitHub リポジトリ `vie324/salon_one_dashboard` をインポート。
 2. Framework は **Next.js** が自動検出されます（Build: `next build` / Install: `npm install`）。Root Directory はリポジトリ直下のまま。
-3. 環境変数は**現状不要**（モックデータ動作）。Salon One 連携時に、例として以下を Vercel の Environment Variables に追加し、`src/lib/data` から参照します:
-   - `SALONONE_API_BASE_URL`（例: `https://api.salonone.net/v1`）
-   - `SALONONE_API_TOKEN`
+3. 環境変数（未設定ならモックデータ動作）。実マスタ連携するには Vercel の Environment Variables に以下を追加します（`.env.example` 参照。**サーバー専用・クライアントに露出しません**）:
+   - `SALONONE_BASE_URL`（既定: `https://salonone.net`）
+   - `SALONONE_BRAND_CODE` / `SALONONE_LOGIN_ID` / `SALONONE_PASSWORD`
 4. **Deploy** を実行 → 本番URLが発行されます。以後 `main` への push で自動デプロイ、PRごとに**プレビューデプロイ**が作成されます。
 5. Node ランタイムは **20.x** に固定済み。
 
@@ -77,13 +80,20 @@ Node.js は **20.x** を推奨（`.nvmrc` / `package.json` の `engines` で固�
 
 ```
 画面（Server Component） ─┐
-                          ├─→ src/lib/data の selector（getOverview など）─→ 現状: モック / 将来: Salon One API
-/api/[resource]（HTTP）  ─┘
+                          ├─→ src/lib/data の selector（getOverview など・async）
+/api/[resource]（HTTP）  ─┘        │
+                                   ▼
+                        src/lib/data/source.ts の getDataset()
+                          ├─ SALONONE_* 設定あり → 実マスタ（ブランド/店舗/スタッフ）を
+                          │   src/lib/salonone/（認証・自動リフレッシュ付きクライアント）で同期
+                          │   ＋ 数値はフェーズ2まで決定論的生成（TTLキャッシュ・失敗時モックへフォールバック）
+                          └─ 未設定 → 従来のモックカタログ
 ```
 
 - 画面（`src/app/**`）と API（`src/app/api/[resource]/route.ts`）は、**同じ selector** を呼びます。
-- 各 selector の戻り値の「形（型）」を保ったまま中身を Salon One API 呼び出しに差し替えれば、**全画面がそのまま動作**します。
-- モックの生成元は **`src/lib/data/generate.ts` だけ**です（決定論的乱数で安定。SSRとクライアントで不整合が起きません）。
+- 各 selector の戻り値の「形（型）」を保ったまま中身を差し替えれば、**全画面がそのまま動作**します。フェーズ2は `getDataset()` が返す `StoreMonth[]` を実集計に置き換えるだけです。
+- 数値の生成元は **`src/lib/data/generate.ts` の `buildDataset()` だけ**です（決定論的乱数で安定。SSRとクライアントで不整合が起きません）。
+- Salon One API クライアントは **`src/lib/salonone/`**（`client.ts` 認証 / `master.ts` マスタ同期 / `status.ts` 接続状態）。認証情報はサーバー専用の環境変数のみで扱います。
 
 ### データ連携マッピング（ダッシュボード項目 ↔ Salon One）
 

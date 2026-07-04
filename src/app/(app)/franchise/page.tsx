@@ -12,13 +12,13 @@ import { formatYenCompact } from "@/lib/format";
 
 export const metadata = { title: "FC・のれん分け" };
 
-export default function FranchisePage({
+export default async function FranchisePage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getFranchise(filters);
+  const data = await getFranchise(filters);
   const s = data.summary;
 
   const cols: Column[] = [

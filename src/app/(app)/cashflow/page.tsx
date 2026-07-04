@@ -19,13 +19,13 @@ const STATUS: Record<SettlementStatus, { label: string; tone: "success" | "info"
   delayed: { label: "遅延", tone: "danger" },
 };
 
-export default function CashflowPage({
+export default async function CashflowPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getCashflow(filters);
+  const data = await getCashflow(filters);
   const splitTotal = data.split.reduce((s, p) => s + p.amount, 0);
 
   return (

@@ -11,13 +11,13 @@ import { formatNumber, formatPercent, formatYen, formatYenCompact, formatYm } fr
 
 export const metadata = { title: "顧客分析" };
 
-export default function CustomersPage({
+export default async function CustomersPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getCustomers(filters);
+  const data = await getCustomers(filters);
   const h = data.headline;
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
 

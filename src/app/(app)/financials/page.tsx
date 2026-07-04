@@ -13,13 +13,13 @@ import { formatPercent, formatYen, formatYenCompact, formatYm } from "@/lib/form
 
 export const metadata = { title: "財務・PL" };
 
-export default function FinancialsPage({
+export default async function FinancialsPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getFinancials(filters);
+  const data = await getFinancials(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
 
   const find = (k: string) => data.pl.find((l) => l.key === k)!;

@@ -19,13 +19,13 @@ const SSTATUS: Record<StoreStatus, { label: string; tone: "success" | "warning" 
   closing: { label: "閉店準備", tone: "danger" },
 };
 
-export default function StoresPage({
+export default async function StoresPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getStores(filters);
+  const data = await getStores(filters);
   const qs = buildQuery(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
   const avgMargin = data.totals.revenue ? data.totals.operatingProfit / data.totals.revenue : 0;

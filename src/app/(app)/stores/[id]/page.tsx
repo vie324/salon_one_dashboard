@@ -11,7 +11,7 @@ import { getStoreDetail } from "@/lib/data";
 import { buildQuery, parseFilters } from "@/lib/filters";
 import { formatNumber, formatPercent, formatYen, formatYenCompact, formatYm } from "@/lib/format";
 
-export default function StoreDetailPage({
+export default async function StoreDetailPage({
   params,
   searchParams,
 }: {
@@ -19,7 +19,7 @@ export default function StoreDetailPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getStoreDetail(params.id, filters);
+  const data = await getStoreDetail(params.id, filters);
   if (!data) notFound();
   const qs = buildQuery(filters);
   const s = data.store;

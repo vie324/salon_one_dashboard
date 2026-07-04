@@ -14,13 +14,13 @@ export const metadata = { title: "保険診療・療養費" };
 
 const ST: Record<string, "info" | "success" | "danger" | "warning"> = { 請求中: "info", 入金済: "success", 返戻: "danger", 査定: "warning" };
 
-export default function InsurancePage({
+export default async function InsurancePage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getInsurance(filters);
+  const data = await getInsurance(filters);
   const s = data.summary;
 
   const cols: Column[] = [

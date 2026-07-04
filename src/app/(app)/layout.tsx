@@ -3,9 +3,9 @@ import { getAlerts, getCatalog } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { brands, stores } = getCatalog();
-  const alerts = getAlerts();
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const { brands, stores } = await getCatalog();
+  const alerts = await getAlerts();
   return (
     <AppShell
       brands={brands.map((b) => ({ id: b.id, name: b.name }))}

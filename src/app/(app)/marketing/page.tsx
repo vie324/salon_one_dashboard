@@ -41,13 +41,13 @@ const KIND: Record<ChannelKind, { label: string; tone: "brand" | "info" | "succe
   organic: { label: "自然流入", tone: "neutral", color: "#94a3b8" },
 };
 
-export default function MarketingPage({
+export default async function MarketingPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getMarketing(filters);
+  const data = await getMarketing(filters);
 
   const byKind = (Object.keys(KIND) as ChannelKind[]).map((k) => ({
     name: KIND[k].label,

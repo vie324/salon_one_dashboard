@@ -19,13 +19,13 @@ const RSTATUS: Record<ReconStatus, { label: string; tone: "success" | "warning" 
   unmatched: { label: "未解決", tone: "danger", color: "#f43f5e" },
 };
 
-export default function ReconciliationPage({
+export default async function ReconciliationPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getReconciliation(filters);
+  const data = await getReconciliation(filters);
   const total = data.summary.matched + data.summary.investigating + data.summary.unmatched;
 
   const detailCols: Column[] = [

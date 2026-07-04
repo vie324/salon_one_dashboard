@@ -18,7 +18,7 @@ const TEMPLATES = [
   { id: "store", label: "店舗別実績レポート", icon: Receipt, desc: "店舗ごとの売上・損益" },
 ];
 
-export default function ReportsPage({
+export default async function ReportsPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
@@ -29,11 +29,11 @@ export default function ReportsPage({
   const base = buildQuery(filters);
   const tplHref = (id: string) => (base ? `${base}&tpl=${id}` : `?tpl=${id}`);
 
-  const overview = getOverview(filters);
-  const fin = getFinancials(filters);
-  const cash = getCashflow(filters);
-  const stores = getStores(filters);
-  const budget = getBudget(filters);
+  const overview = await getOverview(filters);
+  const fin = await getFinancials(filters);
+  const cash = await getCashflow(filters);
+  const stores = await getStores(filters);
+  const budget = await getBudget(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
   const meta = TEMPLATES.find((t) => t.id === tpl)!;
 

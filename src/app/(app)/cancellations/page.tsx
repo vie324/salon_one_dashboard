@@ -12,13 +12,13 @@ import { formatDate, formatPercent } from "@/lib/format";
 
 export const metadata = { title: "キャンセル料" };
 
-export default function CancellationsPage({
+export default async function CancellationsPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getCancellations(filters);
+  const data = await getCancellations(filters);
   const s = data.summary;
 
   const cols: Column[] = [
