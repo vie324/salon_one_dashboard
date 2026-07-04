@@ -15,13 +15,13 @@ const SUB_TONE: Record<string, "success" | "info" | "warning"> = {
   申請中: "warning",
 };
 
-export default function FundingPage({
+export default async function FundingPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getFunding(filters);
+  const data = await getFunding(filters);
   const s = data.summary;
 
   const loanCols: Column[] = [

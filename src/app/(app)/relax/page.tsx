@@ -12,13 +12,13 @@ import { formatPercent, formatYenCompact } from "@/lib/format";
 
 export const metadata = { title: "施術・委託（リラク）" };
 
-export default function RelaxPage({
+export default async function RelaxPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getRelax(filters);
+  const data = await getRelax(filters);
   const s = data.summary;
   const e = data.employment;
   const totalEmp = e.directRevenue + e.outsourcedRevenue || 1;

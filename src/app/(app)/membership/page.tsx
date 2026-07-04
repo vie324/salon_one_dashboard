@@ -13,13 +13,13 @@ import { CHART_COLORS } from "@/lib/colors";
 
 export const metadata = { title: "定額制・回転" };
 
-export default function MembershipPage({
+export default async function MembershipPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getMembership(filters);
+  const data = await getMembership(filters);
   const s = data.summary;
 
   const cols: Column[] = [

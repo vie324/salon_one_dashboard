@@ -18,13 +18,13 @@ const STATUS: Record<"out" | "low" | "ok", { label: string; tone: "danger" | "wa
   ok: { label: "適正", tone: "success" },
 };
 
-export default function InventoryPage({
+export default async function InventoryPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getInventory(filters);
+  const data = await getInventory(filters);
 
   const reorderCols: Column[] = [
     { key: "name", label: "品目", type: "entity" },

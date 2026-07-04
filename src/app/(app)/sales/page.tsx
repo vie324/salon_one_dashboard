@@ -13,13 +13,13 @@ import { formatPercent, formatYen, formatYenCompact } from "@/lib/format";
 
 export const metadata = { title: "売上・実績" };
 
-export default function SalesPage({
+export default async function SalesPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getSales(filters);
+  const data = await getSales(filters);
   const h = data.headline;
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
   const maxBrandRev = Math.max(...data.brandRows.map((b) => b.revenue), 1);

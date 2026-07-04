@@ -12,13 +12,13 @@ import { formatNumber, formatYenCompact } from "@/lib/format";
 
 export const metadata = { title: "人時生産性・シフト" };
 
-export default function LaborPage({
+export default async function LaborPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getLabor(filters);
+  const data = await getLabor(filters);
   const s = data.summary;
 
   const cols: Column[] = [

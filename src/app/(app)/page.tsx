@@ -47,13 +47,13 @@ const KPI_HELP: Record<string, string> = {
   cancel: "予約に対するキャンセル（無断含む）の割合。低いほど良い指標です。",
 };
 
-export default function OverviewPage({
+export default async function OverviewPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getOverview(filters);
+  const data = await getOverview(filters);
   const compareText = filters.compare === "prevYear" ? "前年同期比" : "前期間比";
   const qs = buildQuery(filters);
   const paymentTotal = data.paymentMix.reduce((s, p) => s + p.amount, 0);

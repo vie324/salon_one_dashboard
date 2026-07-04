@@ -7,13 +7,13 @@ import { parseFilters } from "@/lib/filters";
 
 export const metadata = { title: "予実・目標" };
 
-export default function BudgetPage({
+export default async function BudgetPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getBudget(filters);
+  const data = await getBudget(filters);
 
   return (
     <>

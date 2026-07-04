@@ -50,14 +50,14 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   relax: getRelax,
 };
 
-export function GET(
+export async function GET(
   req: NextRequest,
   { params }: { params: { resource: string } },
 ) {
   const { resource } = params;
 
   if (resource === "catalog") {
-    return NextResponse.json(getCatalog());
+    return NextResponse.json(await getCatalog());
   }
 
   const selector = RESOURCES[resource];
@@ -69,5 +69,5 @@ export function GET(
   }
 
   const filters = parseFilters(Object.fromEntries(req.nextUrl.searchParams.entries()));
-  return NextResponse.json({ resource, filters, data: selector(filters) });
+  return NextResponse.json({ resource, filters, data: await selector(filters) });
 }

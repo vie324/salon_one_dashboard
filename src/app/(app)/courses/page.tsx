@@ -15,13 +15,13 @@ export const metadata = { title: "役務・コース管理" };
 const PAY_TONE: Record<string, "neutral" | "info" | "brand"> = { 一括: "neutral", 信販: "info", 都度: "brand" };
 const STATUS_TONE: Record<string, "brand" | "info" | "danger" | "warning"> = { 進行中: "brand", 完了: "info", 解約: "danger", 失効: "warning" };
 
-export default function CoursesPage({
+export default async function CoursesPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getCourses(filters);
+  const data = await getCourses(filters);
   const s = data.summary;
   const maxShinpan = Math.max(...data.shinpanByCompany.map((x) => x.balance), 1);
 

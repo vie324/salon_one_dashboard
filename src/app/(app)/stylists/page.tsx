@@ -19,13 +19,13 @@ const RANK_TONE: Record<string, "brand" | "info" | "warning" | "neutral"> = {
   ジュニア: "neutral",
 };
 
-export default function StylistsPage({
+export default async function StylistsPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const filters = parseFilters(searchParams);
-  const data = getStylists(filters);
+  const data = await getStylists(filters);
   const s = data.summary;
 
   const cols: Column[] = [
