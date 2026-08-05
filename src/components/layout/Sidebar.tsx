@@ -47,7 +47,7 @@ export function Sidebar({
       )}
 
       {/* nav */}
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
+      <nav aria-label="メインナビゲーション" className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
         {groups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
@@ -63,6 +63,7 @@ export function Sidebar({
                     key={item.href}
                     href={item.href + qs}
                     onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
                     title={collapsed ? item.label : undefined}
                     className={cn("nav-link", active && "nav-link-active", collapsed && "justify-center px-0")}
                   >
