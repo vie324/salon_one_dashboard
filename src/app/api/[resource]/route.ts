@@ -18,6 +18,7 @@ import {
   getStylists,
   getOverview,
   getReconciliation,
+  getRoadmap,
   getSales,
   getStores,
 } from "@/lib/data";
@@ -48,6 +49,7 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   stylists: getStylists,
   membership: getMembership,
   relax: getRelax,
+  roadmap: getRoadmap,
 };
 
 export function GET(

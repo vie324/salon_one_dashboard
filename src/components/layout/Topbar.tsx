@@ -2,7 +2,7 @@
 
 import { Menu, Rows3, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { routeTitle } from "@/lib/nav";
+import { routeTitle, usesFilters } from "@/lib/nav";
 import type { AlertItem } from "@/lib/data";
 import { useUiPrefs } from "@/components/providers/UiPrefs";
 import { Avatar } from "./Logo";
@@ -23,6 +23,7 @@ export function Topbar({
 }) {
   const pathname = usePathname();
   const title = routeTitle(pathname);
+  const showFilters = usesFilters(pathname);
   const { density, setDensity } = useUiPrefs();
 
   return (
@@ -37,9 +38,11 @@ export function Topbar({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden xl:block">
-            <FilterBar brands={brands} stores={stores} />
-          </div>
+          {showFilters && (
+            <div className="hidden xl:block">
+              <FilterBar brands={brands} stores={stores} />
+            </div>
+          )}
           <button
             onClick={() => window.dispatchEvent(new Event("open-command"))}
             className="hidden h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 md:flex"
@@ -66,9 +69,11 @@ export function Topbar({
       </div>
 
       {/* filters on a second row below xl */}
-      <div className="overflow-x-auto border-t px-4 py-2 xl:hidden">
-        <FilterBar brands={brands} stores={stores} />
-      </div>
+      {showFilters && (
+        <div className="overflow-x-auto border-t px-4 py-2 xl:hidden">
+          <FilterBar brands={brands} stores={stores} />
+        </div>
+      )}
     </header>
   );
 }

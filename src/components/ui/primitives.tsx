@@ -52,7 +52,18 @@ export function CardHeader({
 
 // ---- Badge --------------------------------------------------------------
 
-type Tone = "brand" | "success" | "danger" | "warning" | "info" | "neutral";
+export type Tone = "brand" | "success" | "danger" | "warning" | "info" | "neutral";
+
+// クラス名はリテラルで持つ（`badge-${tone}` のような組み立てだと Tailwind の
+// content スキャンに拾われず、@layer components の定義が削除されてしまうため）。
+const BADGE_TONE: Record<Tone, string> = {
+  brand: "badge-brand",
+  success: "badge-success",
+  danger: "badge-danger",
+  warning: "badge-warning",
+  info: "badge-info",
+  neutral: "badge-neutral",
+};
 
 export function Badge({
   tone = "neutral",
@@ -63,7 +74,7 @@ export function Badge({
   children: ReactNode;
   className?: string;
 }) {
-  return <span className={cn("badge", `badge-${tone}`, className)}>{children}</span>;
+  return <span className={cn("badge", BADGE_TONE[tone], className)}>{children}</span>;
 }
 
 // ---- Delta pill ---------------------------------------------------------

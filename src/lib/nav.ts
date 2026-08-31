@@ -13,6 +13,7 @@ import {
   Network,
   Package,
   Repeat,
+  Route,
   Scissors,
   Scale,
   Settings,
@@ -102,6 +103,12 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "プロダクト開発",
+    items: [
+      { href: "/roadmap", label: "開発ロードマップ", icon: Route, desc: "中長期スケジュールと今週の開発依頼" },
+    ],
+  },
+  {
     label: "店舗・レポート",
     items: [
       { href: "/stores", label: "店舗管理", icon: Store, desc: "多店舗・多ブランド比較" },
@@ -111,6 +118,16 @@ export const NAV: NavGroup[] = [
     ],
   },
 ];
+
+/**
+ * 期間・ブランド・店舗のフィルタを使わない画面。
+ * 効かないコントロールを出すと誤解を招くため、フィルタバーを隠す。
+ */
+const FILTERLESS_ROUTES = ["/roadmap"];
+
+export function usesFilters(pathname: string): boolean {
+  return !FILTERLESS_ROUTES.includes(pathname);
+}
 
 const TITLE_MAP: Record<string, string> = Object.fromEntries(
   NAV.flatMap((g) => g.items).map((i) => [i.href, i.label]),

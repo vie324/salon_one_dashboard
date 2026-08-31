@@ -47,6 +47,13 @@ import {
   type PaymentMethodKey,
   type StoreMonth,
 } from "@/lib/types";
+import {
+  ROADMAP_TODAY,
+  isScheduled,
+  mondayOf,
+  type DevItem,
+} from "@/lib/roadmap";
+import { ROADMAP_ITEMS } from "./roadmap";
 
 // ---- low-level helpers ----------------------------------------------------
 
@@ -1300,6 +1307,51 @@ export function getRelax(f: Filters) {
       { name: "国家資格", value: licensedRev, color: "#0f766e" },
       { name: "資格外（リラク）", value: unlicensedRev, color: "#c0a060" },
     ],
+  };
+}
+
+// ============================================================
+// 開発ロードマップ (product roadmap)
+// ------------------------------------------------------------
+// 経営数値ではなく「開発計画」のデータ。全社共通のため期間・ブランド・店舗の
+// フィルタは掛からない。将来ここを「開発進捗」台帳のAPIに差し替えれば、
+// 画面はそのまま実データで動く（他のselectorと同じ差し込み口）。
+// ============================================================
+
+export interface RoadmapData {
+  /** 基準日と、それを含む週の月曜日。 */
+  today: string;
+  currentWeek: string;
+  items: DevItem[];
+  summary: {
+    /** 今週着手する件数。 */
+    thisWeek: number;
+    inProgress: number;
+    done: number;
+    /** 日程が決まっている件数（今週以降）。 */
+    scheduled: number;
+    /** 日程未定の候補件数。 */
+    backlog: number;
+  };
+}
+
+export function getRoadmap(): RoadmapData {
+  const today = ROADMAP_TODAY;
+  const currentWeek = mondayOf(today);
+  const items = ROADMAP_ITEMS;
+
+  const scheduled = items.filter(isScheduled);
+  return {
+    today,
+    currentWeek,
+    items,
+    summary: {
+      thisWeek: scheduled.filter((i) => i.week === currentWeek).length,
+      inProgress: items.filter((i) => i.status === "inProgress").length,
+      done: items.filter((i) => i.status === "done").length,
+      scheduled: scheduled.filter((i) => (i.week ?? "") >= currentWeek).length,
+      backlog: items.filter((i) => i.status === "next" || i.status === "later").length,
+    },
   };
 }
 
