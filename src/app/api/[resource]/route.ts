@@ -18,10 +18,12 @@ import {
   getStylists,
   getOverview,
   getReconciliation,
+  getReferral,
   getSales,
   getStores,
 } from "@/lib/data";
 import { parseFilters, type Filters } from "@/lib/filters";
+import { maskLead } from "@/lib/referral";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,11 @@ const RESOURCES: Record<string, (f: Filters) => unknown> = {
   stylists: getStylists,
   membership: getMembership,
   relax: getRelax,
+  // 申込の連絡先は公開HTTPからは伏せて返します（画面はサーバ側で完全な値を参照）。
+  referral: (f: Filters) => {
+    const d = getReferral(f);
+    return { ...d, leads: d.leads.map(maskLead) };
+  },
 };
 
 export function GET(

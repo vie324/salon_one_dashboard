@@ -65,9 +65,23 @@ Node.js は **20.x** を推奨（`.nvmrc` / `package.json` の `engines` で固�
 | `/financials` | **財務・PL** | 月次**損益計算書**（構成比・前年比）、**損益分岐点分析**、費用構成、ブランド/店舗別損益 |
 | `/stores` | **店舗管理** | 多店舗・多ブランドの横並び比較（売上/利益率/成長率/**人時生産性**）、店舗詳細 |
 | `/reports` | **レポート・資料作成** | **月次経営レポートの自動生成**（PDF出力）。役員会・税理士提出資料テンプレート |
+| `/referral` | **紹介制度** | 紹介特典の管理。申込一覧（誰の紹介か／連絡希望日時／連絡方法）、紹介者ランキング、**特典シミュレーター**、お客様用フォームURLの共有 |
+| `/referral/apply` | **紹介制度 申込フォーム（公開）** | お客様が記入するフォーム。ダッシュボードのUIを持たない独立ページで、ログイン不要でそのまま共有できます |
 | `/settings` | **設定・Salon One 連携** | 連携方式の選択肢、**データ連携マッピング表**、権限（ロール） |
 
 各ページ右上の「PDF出力」はブラウザ印刷を利用し、UI（サイドバー等）を除いた資料として出力できます（`@media print` 対応済）。
+
+### 紹介制度（リファラル）
+
+| 対象 | 特典 |
+|---|---|
+| **紹介した側** | 初期費用の **25%** をお支払い（成約・初期費用のご入金確認の翌月末） |
+| **紹介された側** | **初月の端数日数（利用開始日〜月末の日割り分）＋ 2ヶ月無料** |
+
+- **お客様用フォーム**：`/referral/apply`（公開URL）。「誰に紹介されたか」「連絡してほしい方法（電話／メール／LINE／SMS／オンライン面談）」「連絡希望日時（第1・第2希望）」「利用開始のご希望時期」などを入力できます。利用開始希望日を入れると、**無料期間（端数日数＋2ヶ月）と初回請求日をその場で試算**して表示します。
+- **管理画面**：`/referral`（サイドバー「運営 > 紹介制度」）。申込一覧・対応状況・紹介者ランキング・紹介報酬（25%）の累計と未払い、特典シミュレーターを確認できます。フォームURLはこの画面からコピーして共有します。
+- 制度の条件（25% / 2ヶ月 / 端数日数の扱い）は **`src/lib/referral.ts` の `REFERRAL_PROGRAM`** 1箇所で定義しています。金額の試算に使う初期費用・月額（`FEE_ASSUMPTION`）は**仮置き**のため、実際の料金表に合わせて更新してください。
+- 送信は `POST /api/referral-leads` が受け取り、`src/lib/data/leads.ts` の `addLead()` に保存します（プロトタイプはサーバのメモリ上）。**本番では `addLead()` を Salon One / CRM へのリード登録・担当者へのメール / LINE 通知・DB保存に差し替えれば、画面はそのまま動作します。**
 
 ---
 
@@ -97,6 +111,7 @@ Node.js は **20.x** を推奨（`.nvmrc` / `package.json` の `engines` で固�
 | PL（原価・人件費・家賃 等） | 会計連携 / 経費 | `getFinancials` / `/api/financials` |
 | サブスク・前受金（役務） | サブスク管理 / 役務管理 | `getCashflow`, `getCustomers` |
 | 集客チャネル | 媒体連携（ホットペッパー等）/ LINE | `getMarketing` / `/api/marketing` |
+| 紹介制度（申込・紹介報酬） | 本ツールのフォーム入力 / CRM | `getReferral` / `/api/referral`、`addLead` / `POST /api/referral-leads` |
 
 ### 連携方式の選択肢（`/settings` に記載）
 
@@ -118,11 +133,14 @@ src/
 │  │  ├─ layout.tsx
 │  │  ├─ page.tsx             ダッシュボード
 │  │  ├─ sales / customers / marketing / cashflow /
-│  │     reconciliation / financials / stores / reports / settings
-│  └─ api/[resource]/route.ts 連携の差し込み口（HTTP）
+│  │     reconciliation / financials / stores / reports / settings / referral
+│  ├─ referral/apply/         公開の申込フォーム（ダッシュボードのシェル外）
+│  ├─ api/[resource]/route.ts 連携の差し込み口（HTTP）
+│  └─ api/referral-leads/     紹介フォームの受け口（POST）
 ├─ components/
 │  ├─ layout/                 AppShell, Sidebar, Topbar, FilterBar, Logo, ThemeToggle
 │  ├─ charts/                 Recharts ラッパー（TrendChart/BarsChart/Donut/Heatmap/Sparkline）
+│  ├─ referral/               紹介フォーム・フォームURL共有・特典シミュレーター
 │  └─ ui/                     Card, StatCard, ChartCard, PageHeader, primitives, PrintButton
 └─ lib/
    ├─ data/                   ★データアクセス層（連携の差し込み口）
@@ -130,6 +148,7 @@ src/
    │  ├─ catalog.ts           ブランド/店舗/決済代行/業態プロファイル等のマスタ
    │  ├─ generate.ts          モックデータ生成（唯一の生成元）
    │  └─ random.ts            決定論的乱数
+   ├─ referral.ts             紹介制度のパラメータ・特典計算・入力チェック
    ├─ types.ts                ドメイン型（連携の契約）
    ├─ filters.ts              期間/ブランド/店舗/比較のフィルタ
    ├─ format.ts               金額（万/億）・%・日付のフォーマッタ
