@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Gift,
   Hand,
   HeartPulse,
   LayoutDashboard,
@@ -43,8 +44,8 @@ export const ROLES: { key: Role; label: string; desc: string }[] = [
 
 const ACCESS: Record<Role, string[] | "all"> = {
   owner: "all",
-  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
-  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/funding", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
+  area: ["/", "/budget", "/sales", "/customers", "/marketing", "/stores", "/inventory", "/cancellations", "/labor", "/referral", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
+  finance: ["/", "/budget", "/cashflow", "/reconciliation", "/financials", "/reports", "/settings", "/inventory", "/cancellations", "/labor", "/referral", "/funding", "/franchise", "/courses", "/insurance", "/stylists", "/membership", "/relax"],
   viewer: ["/", "/financials", "/reports"],
 };
 
@@ -89,6 +90,7 @@ export const NAV: NavGroup[] = [
       { href: "/inventory", label: "在庫・発注", icon: Package, desc: "材料/店販在庫・発注点・ロス管理" },
       { href: "/cancellations", label: "キャンセル料", icon: CalendarX, desc: "無断/直前キャンセルの請求・回収・常習者" },
       { href: "/labor", label: "人時生産性・シフト", icon: Clock, desc: "生産性・適正人員・需要予測・歩合" },
+      { href: "/referral", label: "紹介制度", icon: Gift, desc: "紹介特典・申込フォーム・報酬管理" },
     ],
   },
   {

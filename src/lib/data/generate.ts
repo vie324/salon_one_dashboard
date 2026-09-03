@@ -4,12 +4,19 @@
 
 import { CURRENT_YM, shiftYm, ymRange } from "@/lib/filters";
 import type {
+  ContactMethod,
+  ContactSlot,
   PaymentMethodKey,
   ReconItem,
   ReconStatus,
+  ReferralLead,
+  ReferralStatus,
+  SalonCategory,
   Settlement,
+  StartPlan,
   StoreMonth,
 } from "@/lib/types";
+import { FEE_ASSUMPTION, makeLeadId, referrerReward } from "@/lib/referral";
 import {
   BRANDS,
   CATEGORY_PROFILE,
@@ -474,3 +481,119 @@ const INV_SEED: Omit<InventoryItem, "id">[] = [
 ];
 
 export const INVENTORY: InventoryItem[] = INV_SEED.map((s, i) => ({ id: `inv-${i}`, ...s }));
+
+// ---- 紹介制度：申込（リード）--------------------------------------------
+// 公開フォーム（/referral/apply）から届く申込のモック。直近7ヶ月分を決定論的に
+// 生成します。連携時は Salon One / CRM のリードを同じ形にマッピングしてください。
+
+const REFERRERS: { name: string; salon: string; code: string }[] = [
+  { name: "田村 佳奈", salon: "hair atelier NOA", code: "REF-NOA31" },
+  { name: "上村 健太", salon: "BARBER UEMURA", code: "REF-UEM07" },
+  { name: "西野 千尋", salon: "nail room Lien", code: "REF-LIEN9" },
+  { name: "堀内 麻衣", salon: "eyelash SHEEN", code: "REF-SHN22" },
+  { name: "藤原 大地", salon: "整体院 からだ堂", code: "REF-KRD14" },
+  { name: "岡田 里奈", salon: "Relaxation AOI", code: "REF-AOI55" },
+  { name: "宮本 悠介", salon: "Esthe Lumina", code: "REF-LMN03" },
+  { name: "笹川 直美", salon: "hair&make SASA", code: "REF-SAS18" },
+];
+
+const APPLICANTS: { company: string; contact: string; categories: SalonCategory[]; stores: number }[] = [
+  { company: "株式会社ベルフィオーレ", contact: "小田切 恵", categories: ["hair"], stores: 3 },
+  { company: "nail salon Cotton", contact: "早瀬 真由", categories: ["nail"], stores: 1 },
+  { company: "有限会社ヘアズ北浜", contact: "北浜 徹", categories: ["hair"], stores: 5 },
+  { company: "Lash Studio Mirai", contact: "三浦 のぞみ", categories: ["eyelash"], stores: 2 },
+  { company: "からだ整骨院グループ", contact: "本間 幸雄", categories: ["osteopathy"], stores: 6 },
+  { company: "リラクゼーション凪", contact: "永井 千夏", categories: ["relax"], stores: 2 },
+  { company: "エステサロン Blanche", contact: "浅井 亜美", categories: ["esthetic"], stores: 1 },
+  { company: "株式会社ミモザ", contact: "室井 大輔", categories: ["hair", "nail"], stores: 4 },
+  { company: "salon de Lien", contact: "柳沢 美穂", categories: ["nail", "eyelash"], stores: 2 },
+  { company: "整体&リラク こもれび", contact: "小森 亮", categories: ["osteopathy", "relax"], stores: 3 },
+  { company: "Hair Design QUON", contact: "久遠 翔太", categories: ["hair"], stores: 2 },
+  { company: "Beauty Works 湘南", contact: "江ノ島 智子", categories: ["esthetic", "relax"], stores: 1 },
+];
+
+const METHODS: ContactMethod[] = ["phone", "email", "line", "sms", "online"];
+const SLOTS: ContactSlot[] = ["am", "noon", "pm", "evening", "anytime"];
+const START_PLANS: StartPlan[] = ["asap", "within1m", "within3m", "undecided"];
+const NOTES = [
+  "現在は紙台帳とエクセルで管理しています。予約と会計の一元化を相談したいです。",
+  "他社システムからの乗り換えを検討中。データ移行が可能か知りたいです。",
+  "2店舗目の出店にあわせて導入を検討しています。",
+  "スタッフの歩合計算に時間がかかっており、自動化したいです。",
+  "",
+  "",
+  "サブスク（定額制）の運用ができるか確認したいです。",
+  "料金プランの詳細と、紹介特典の適用条件を教えてください。",
+];
+
+/** 月末日（"YYYY-MM"）。 */
+function lastDayOfYm(ym: string): number {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+}
+
+export const REFERRAL_LEADS: ReferralLead[] = [];
+{
+  const months = ymRange(shiftYm(CURRENT_YM, -6), CURRENT_YM);
+  let seq = 1;
+  months.forEach((ym, mi) => {
+    const monthAge = months.length - 1 - mi; // 0 = 当月
+    const r = rngFor("referral", ym);
+    const count = randInt(r, 3, 6);
+    for (let i = 0; i < count; i++) {
+      const maxDay = ym === CURRENT_YM ? TODAY_DAY : lastDayOfYm(ym);
+      const day = randInt(r, 1, maxDay);
+      const submittedAt = `${ym}-${String(day).padStart(2, "0")}T${String(randInt(r, 9, 20)).padStart(2, "0")}:${pick(r, ["05", "17", "23", "41", "58"])}:00+09:00`;
+      const ref = pick(r, REFERRERS);
+      const app = APPLICANTS[(seq * 5 + i) % APPLICANTS.length];
+      const method = pick(r, METHODS);
+      const submittedDate = `${ym}-${String(day).padStart(2, "0")}`;
+      const preferredDate1 = addDaysIso(submittedDate, randInt(r, 1, 6));
+      const hasSecond = r() < 0.65;
+
+      // 古い申込ほど決着済み。当月は未対応・連絡済が中心。
+      const roll = r();
+      let status: ReferralStatus;
+      if (monthAge === 0) status = roll < 0.45 ? "new" : roll < 0.8 ? "contacted" : "appointment";
+      else if (monthAge === 1) status = roll < 0.12 ? "new" : roll < 0.35 ? "contacted" : roll < 0.6 ? "appointment" : roll < 0.85 ? "won" : "lost";
+      else status = roll < 0.1 ? "contacted" : roll < 0.22 ? "appointment" : roll < 0.72 ? "won" : "lost";
+
+      const fee = FEE_ASSUMPTION.byStoreCount(app.stores);
+      const won = status === "won";
+      const startDate = won ? addDaysIso(submittedDate, randInt(r, 18, 45)) : undefined;
+
+      REFERRAL_LEADS.push({
+        id: makeLeadId(submittedAt, seq++),
+        submittedAt,
+        referrerName: ref.name,
+        referrerSalon: ref.salon,
+        referrerCode: r() < 0.6 ? ref.code : undefined,
+        companyName: app.company,
+        contactName: app.contact,
+        phone: `0${randInt(r, 3, 9)}0-${String(randInt(r, 1000, 9999))}-${String(randInt(r, 1000, 9999))}`,
+        email: `info@${["belfiore", "cotton-nail", "hairs", "mirai", "karada", "nagi", "blanche", "mimosa", "lien", "komorebi", "quon", "bw-shonan"][(seq + i) % 12]}.example.jp`,
+        lineId: method === "line" ? `@salon${randInt(r, 100, 999)}` : undefined,
+        storeCount: app.stores,
+        categories: app.categories,
+        contactMethod: method,
+        preferredDate1,
+        preferredSlot1: pick(r, SLOTS),
+        preferredDate2: hasSecond ? addDaysIso(preferredDate1, randInt(r, 1, 5)) : undefined,
+        preferredSlot2: hasSecond ? pick(r, SLOTS) : undefined,
+        startPlan: pick(r, START_PLANS),
+        note: pick(r, NOTES) || undefined,
+        status,
+        initialFee: won ? fee.initialFee : undefined,
+        reward: won ? referrerReward(fee.initialFee) : undefined,
+        rewardPaid: won ? monthAge >= 3 : undefined, // 支払いは成約の翌月末 → 直近の成約は未払い
+        startDate,
+      });
+    }
+  });
+}

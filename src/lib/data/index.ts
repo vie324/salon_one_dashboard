@@ -44,9 +44,22 @@ import { randFloat, rngFor } from "./random";
 import {
   CATEGORY_LABEL,
   PAYMENT_LABEL,
+  REFERRAL_STATUS_LABEL,
   type PaymentMethodKey,
+  type ReferralStatus,
   type StoreMonth,
 } from "@/lib/types";
+import { CHART_COLORS } from "@/lib/colors";
+import {
+  CONTACT_METHOD_OPTIONS,
+  FEE_ASSUMPTION,
+  REFERRAL_PROGRAM,
+  STATUS_COLOR,
+  freePeriod,
+  freePeriodValue,
+  jstDate,
+} from "@/lib/referral";
+import { allLeads } from "./leads";
 
 // ---- low-level helpers ----------------------------------------------------
 
@@ -1303,6 +1316,92 @@ export function getRelax(f: Filters) {
   };
 }
 
+// ============================================================
+// 紹介制度（リファラル）
+// ============================================================
+
+export function getReferral(f: Filters) {
+  // 申込は全社共通のため店舗・ブランドのフィルタは適用しません。
+  // 引数は他の selector と同じ形にそろえるために受け取っています。
+  void f;
+
+  const leads = allLeads();
+  const ymOf = (submittedAt: string) => jstDate(submittedAt).slice(0, 7);
+
+  const months = ymRange(shiftYm(CURRENT_YM, -6), CURRENT_YM);
+  const monthly = months.map((ym) => {
+    const inMonth = leads.filter((l) => ymOf(l.submittedAt) === ym);
+    return {
+      label: ym,
+      leads: inMonth.length,
+      won: inMonth.filter((l) => l.status === "won").length,
+    };
+  });
+
+  const won = leads.filter((l) => l.status === "won");
+  const decided = leads.filter((l) => l.status === "won" || l.status === "lost").length;
+  const rewardTotal = won.reduce((s, l) => s + (l.reward ?? 0), 0);
+  const rewardUnpaid = won.filter((l) => !l.rewardPaid).reduce((s, l) => s + (l.reward ?? 0), 0);
+
+  // 紹介された側に付与した無料期間の相当額（端数日数の日割り＋2ヶ月分）
+  const freeValueTotal = won.reduce((s, l) => {
+    const start = l.startDate ?? jstDate(l.submittedAt);
+    const { monthlyFee } = FEE_ASSUMPTION.byStoreCount(l.storeCount);
+    return s + freePeriodValue(monthlyFee, freePeriod(start));
+  }, 0);
+
+  const byStatus = (Object.keys(REFERRAL_STATUS_LABEL) as ReferralStatus[]).map((k) => ({
+    name: REFERRAL_STATUS_LABEL[k],
+    value: leads.filter((l) => l.status === k).length,
+    color: STATUS_COLOR[k],
+  }));
+
+  // グラフの軸に収まる短いラベル（電話 / メール / LINE / SMS / オンライン面談）
+  const byMethod = CONTACT_METHOD_OPTIONS.map((m, i) => ({
+    name: m.label,
+    value: leads.filter((l) => l.contactMethod === m.key).length,
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }));
+
+  const referrerMap = new Map<string, { name: string; salon: string; leads: number; won: number; reward: number }>();
+  for (const l of leads) {
+    const key = `${l.referrerName}|${l.referrerSalon}`;
+    const e = referrerMap.get(key) ?? { name: l.referrerName, salon: l.referrerSalon, leads: 0, won: 0, reward: 0 };
+    e.leads += 1;
+    if (l.status === "won") {
+      e.won += 1;
+      e.reward += l.reward ?? 0;
+    }
+    referrerMap.set(key, e);
+  }
+  const byReferrer = [...referrerMap.values()].sort((a, b) => b.reward - a.reward || b.leads - a.leads);
+
+  return {
+    program: {
+      rewardRate: REFERRAL_PROGRAM.rewardRate,
+      freeMonths: REFERRAL_PROGRAM.freeMonths,
+      rewardTiming: REFERRAL_PROGRAM.rewardTiming,
+      formPath: REFERRAL_PROGRAM.formPath,
+    },
+    summary: {
+      total: leads.length,
+      thisMonth: leads.filter((l) => ymOf(l.submittedAt) === CURRENT_YM).length,
+      open: leads.filter((l) => l.status === "new").length,
+      inProgress: leads.filter((l) => l.status === "contacted" || l.status === "appointment").length,
+      won: won.length,
+      winRate: decided ? won.length / decided : 0,
+      rewardTotal,
+      rewardUnpaid,
+      freeValueTotal,
+    },
+    monthly,
+    byStatus,
+    byMethod,
+    byReferrer,
+    leads,
+  };
+}
+
 // ---- exported return types (for components) ------------------------------
 
 export type CatalogData = ReturnType<typeof getCatalog>;
@@ -1326,3 +1425,5 @@ export type StoreDetailData = NonNullable<ReturnType<typeof getStoreDetail>>;
 export type CustomersData = ReturnType<typeof getCustomers>;
 export type MarketingData = ReturnType<typeof getMarketing>;
 export type BudgetData = ReturnType<typeof getBudget>;
+
+export type ReferralData = ReturnType<typeof getReferral>;
