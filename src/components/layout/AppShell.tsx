@@ -50,6 +50,14 @@ export function AppShell({
   return (
     <UiPrefsProvider>
     <div className="min-h-screen">
+      {/* Skip to content — first focusable element, visible only on keyboard focus */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-pop"
+      >
+        本文へスキップ
+      </a>
+
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -77,7 +85,7 @@ export function AppShell({
       {/* Main column */}
       <div className={cn("transition-[padding] duration-200 print:!pl-0", collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]")}>
         <Topbar brands={brands} stores={stores} alerts={alerts} onMenu={() => setMobileOpen(true)} />
-        <main className="px-4 py-6 lg:px-6 lg:py-7 print:!p-0">
+        <main id="main-content" tabIndex={-1} className="px-4 py-6 outline-none lg:px-6 lg:py-7 print:!p-0">
           <div key={pathname} className="mx-auto max-w-[1440px] animate-fade-up">{children}</div>
         </main>
       </div>
