@@ -41,6 +41,7 @@ import {
   revenueOf,
 } from "./generate";
 import { randFloat, rngFor } from "./random";
+import { SHOW_SAMPLE_DATA } from "./config";
 import {
   CATEGORY_LABEL,
   PAYMENT_LABEL,
@@ -825,21 +826,37 @@ export function getMarketing(f: Filters) {
   });
 
   // online reputation (口コミ) — Google / HotPepper Beauty
-  const reviews = {
-    googleRating: 4.5,
-    hpbRating: 4.4,
-    totalReviews: 3820,
-    monthlyNew: 142,
-    responded: 118,
-    responseRate: 118 / 142,
-    distribution: [
-      { star: 5, count: 2480 },
-      { star: 4, count: 920 },
-      { star: 3, count: 280 },
-      { star: 2, count: 90 },
-      { star: 1, count: 50 },
-    ],
-  };
+  const reviews = SHOW_SAMPLE_DATA
+    ? {
+        googleRating: 4.5,
+        hpbRating: 4.4,
+        totalReviews: 3820,
+        monthlyNew: 142,
+        responded: 118,
+        responseRate: 118 / 142,
+        distribution: [
+          { star: 5, count: 2480 },
+          { star: 4, count: 920 },
+          { star: 3, count: 280 },
+          { star: 2, count: 90 },
+          { star: 1, count: 50 },
+        ],
+      }
+    : {
+        googleRating: 0,
+        hpbRating: 0,
+        totalReviews: 0,
+        monthlyNew: 0,
+        responded: 0,
+        responseRate: 0,
+        distribution: [
+          { star: 5, count: 0 },
+          { star: 4, count: 0 },
+          { star: 3, count: 0 },
+          { star: 2, count: 0 },
+          { star: 1, count: 0 },
+        ],
+      };
 
   // LINE official account / CRM effectiveness
   const line = {
@@ -970,13 +987,15 @@ export function getCancellations(f: Filters) {
     billed: Math.round(agg.noShows * avgFee + agg.cancellations * 0.1 * avgFee),
   }));
 
-  const offenders = [
-    { id: "c1", name: "T. M 様", masked: "•••• 1842", count: 4, lastDate: `${CURRENT_YM}-09`, outstanding: 13200 },
-    { id: "c2", name: "K. S 様", masked: "•••• 7705", count: 3, lastDate: `${CURRENT_YM}-07`, outstanding: 9900 },
-    { id: "c3", name: "R. Y 様", masked: "•••• 3391", count: 3, lastDate: `${CURRENT_YM}-05`, outstanding: 0 },
-    { id: "c4", name: "A. N 様", masked: "•••• 2210", count: 2, lastDate: `${CURRENT_YM}-11`, outstanding: 6600 },
-    { id: "c5", name: "M. H 様", masked: "•••• 9087", count: 2, lastDate: `${CURRENT_YM}-03`, outstanding: 3300 },
-  ];
+  const offenders = SHOW_SAMPLE_DATA
+    ? [
+        { id: "c1", name: "T. M 様", masked: "•••• 1842", count: 4, lastDate: `${CURRENT_YM}-09`, outstanding: 13200 },
+        { id: "c2", name: "K. S 様", masked: "•••• 7705", count: 3, lastDate: `${CURRENT_YM}-07`, outstanding: 9900 },
+        { id: "c3", name: "R. Y 様", masked: "•••• 3391", count: 3, lastDate: `${CURRENT_YM}-05`, outstanding: 0 },
+        { id: "c4", name: "A. N 様", masked: "•••• 2210", count: 2, lastDate: `${CURRENT_YM}-11`, outstanding: 6600 },
+        { id: "c5", name: "M. H 様", masked: "•••• 9087", count: 2, lastDate: `${CURRENT_YM}-03`, outstanding: 3300 },
+      ]
+    : [];
 
   return {
     summary: {
@@ -1000,17 +1019,21 @@ export function getCancellations(f: Filters) {
 // ============================================================
 
 export function getFunding(f: Filters) {
-  const loans = [
-    { id: "l1", name: "日本政策金融公庫 設備資金", principal: 60_000_000, balance: 38_400_000, rate: 0.012, monthlyPayment: 740_000, remainingMonths: 52 },
-    { id: "l2", name: "地方銀行 運転資金", principal: 30_000_000, balance: 12_500_000, rate: 0.008, monthlyPayment: 420_000, remainingMonths: 30 },
-    { id: "l3", name: "リース（脱毛機・什器）", principal: 18_000_000, balance: 9_200_000, rate: 0.024, monthlyPayment: 330_000, remainingMonths: 28 },
-  ];
-  const subsidies = [
-    { id: "s1", name: "IT導入補助金（Salon One 導入）", amount: 1_500_000, status: "入金済" as const },
-    { id: "s2", name: "事業再構築補助金（新店舗）", amount: 8_000_000, status: "採択" as const },
-    { id: "s3", name: "キャリアアップ助成金", amount: 1_140_000, status: "申請中" as const },
-    { id: "s4", name: "小規模事業者持続化補助金", amount: 500_000, status: "申請中" as const },
-  ];
+  const loans = SHOW_SAMPLE_DATA
+    ? [
+        { id: "l1", name: "日本政策金融公庫 設備資金", principal: 60_000_000, balance: 38_400_000, rate: 0.012, monthlyPayment: 740_000, remainingMonths: 52 },
+        { id: "l2", name: "地方銀行 運転資金", principal: 30_000_000, balance: 12_500_000, rate: 0.008, monthlyPayment: 420_000, remainingMonths: 30 },
+        { id: "l3", name: "リース（脱毛機・什器）", principal: 18_000_000, balance: 9_200_000, rate: 0.024, monthlyPayment: 330_000, remainingMonths: 28 },
+      ]
+    : [];
+  const subsidies = SHOW_SAMPLE_DATA
+    ? [
+        { id: "s1", name: "IT導入補助金（Salon One 導入）", amount: 1_500_000, status: "入金済" as const },
+        { id: "s2", name: "事業再構築補助金（新店舗）", amount: 8_000_000, status: "採択" as const },
+        { id: "s3", name: "キャリアアップ助成金", amount: 1_140_000, status: "申請中" as const },
+        { id: "s4", name: "小規模事業者持続化補助金", amount: 500_000, status: "申請中" as const },
+      ]
+    : [];
   const a = aggregate(selectMonths(periodMonths(f), f));
   const taxablePurchase = a.cogs + a.cost.utilities + a.cost.advertising + a.cost.paymentFees + a.cost.other + a.cost.rent;
   const consumptionTaxDue = Math.round(a.revenue * 0.1 - taxablePurchase * 0.1);
@@ -1032,13 +1055,15 @@ export function getFunding(f: Filters) {
 // ============================================================
 
 export function getFranchise(f: Filters) {
-  const stores = [
-    { id: "fc1", name: "Lumière 札幌（FC）", brand: "Lumière", color: "#0f766e", area: "札幌", owner: "北海道ビューティ(株)", openedYear: 2021, monthlyRevenue: 5_200_000, royaltyRate: 0.05 },
-    { id: "fc2", name: "MOD's Nail 仙台（FC）", brand: "MOD's Nail", color: "#be185d", area: "仙台", owner: "東北ビューティ(株)", openedYear: 2022, monthlyRevenue: 3_100_000, royaltyRate: 0.06 },
-    { id: "fc3", name: "Reposer 広島（のれん分け）", brand: "Reposer", color: "#0891b2", area: "広島", owner: "佐藤 健（独立）", openedYear: 2020, monthlyRevenue: 2_700_000, royaltyRate: 0.03 },
-    { id: "fc4", name: "Lashé 金沢（FC）", brand: "Lashé", color: "#7c3aed", area: "金沢", owner: "北陸ラッシュ(株)", openedYear: 2023, monthlyRevenue: 2_300_000, royaltyRate: 0.06 },
-    { id: "fc5", name: "Esthé Blanc 京都（FC）", brand: "Esthé Blanc", color: "#b45309", area: "京都", owner: "関西エステ(株)", openedYear: 2022, monthlyRevenue: 6_400_000, royaltyRate: 0.05 },
-  ];
+  const stores = SHOW_SAMPLE_DATA
+    ? [
+        { id: "fc1", name: "Lumière 札幌（FC）", brand: "Lumière", color: "#0f766e", area: "札幌", owner: "北海道ビューティ(株)", openedYear: 2021, monthlyRevenue: 5_200_000, royaltyRate: 0.05 },
+        { id: "fc2", name: "MOD's Nail 仙台（FC）", brand: "MOD's Nail", color: "#be185d", area: "仙台", owner: "東北ビューティ(株)", openedYear: 2022, monthlyRevenue: 3_100_000, royaltyRate: 0.06 },
+        { id: "fc3", name: "Reposer 広島（のれん分け）", brand: "Reposer", color: "#0891b2", area: "広島", owner: "佐藤 健（独立）", openedYear: 2020, monthlyRevenue: 2_700_000, royaltyRate: 0.03 },
+        { id: "fc4", name: "Lashé 金沢（FC）", brand: "Lashé", color: "#7c3aed", area: "金沢", owner: "北陸ラッシュ(株)", openedYear: 2023, monthlyRevenue: 2_300_000, royaltyRate: 0.06 },
+        { id: "fc5", name: "Esthé Blanc 京都（FC）", brand: "Esthé Blanc", color: "#b45309", area: "京都", owner: "関西エステ(株)", openedYear: 2022, monthlyRevenue: 6_400_000, royaltyRate: 0.05 },
+      ]
+    : [];
   const months = periodMonths(f).length;
   const rows = stores.map((s) => ({ ...s, revenue: s.monthlyRevenue * months, royalty: Math.round(s.monthlyRevenue * months * s.royaltyRate) }));
   const totalRevenue = rows.reduce((a, r) => a + r.revenue, 0);
@@ -1062,7 +1087,7 @@ export function getCourses(f: Filters) {
   const sessionsOpts = [6, 8, 10, 12, 18, 24];
   const perSessionOpts = [9000, 12000, 18000, 25000];
 
-  const contracts = Array.from({ length: 30 }, (_, i) => {
+  const contracts = SHOW_SAMPLE_DATA ? Array.from({ length: 30 }, (_, i) => {
     const r = rngFor("course", i);
     const sessions = sessionsOpts[Math.floor(r() * sessionsOpts.length)];
     const contractAmount = sessions * perSessionOpts[Math.floor(r() * perSessionOpts.length)];
@@ -1114,7 +1139,7 @@ export function getCourses(f: Filters) {
       coolingOff,
       consumption: used / sessions,
     };
-  });
+  }) : [];
 
   const active = contracts.filter((c) => c.status === "進行中");
   const cancels = contracts.filter((c) => c.status === "解約");
@@ -1183,7 +1208,7 @@ export function getInsurance(f: Filters) {
   }));
   const insurers = ["協会けんぽ", "国民健康保険", "後期高齢者", "組合健保"];
   const statuses = ["請求中", "入金済", "返戻", "査定"];
-  const claims = Array.from({ length: 10 }, (_, i) => {
+  const claims = SHOW_SAMPLE_DATA ? Array.from({ length: 10 }, (_, i) => {
     const r = rngFor("ins", i);
     const amount = Math.round(randFloat(r, 28000, 160000));
     const st = i < 6 ? "入金済" : i < 8 ? "請求中" : i === 8 ? "返戻" : "査定";
@@ -1197,7 +1222,7 @@ export function getInsurance(f: Filters) {
       date: `${shiftYm(CURRENT_YM, -Math.floor(r() * 3))}-${String(5 + Math.floor(r() * 20)).padStart(2, "0")}`,
       status: st,
     };
-  });
+  }) : [];
   return {
     summary: { insuranceRev, jihiRev, insuranceRatio, billed, paid, pending, returned, assessed, jihiConversion: 0.28 },
     trend, aging, claims,
